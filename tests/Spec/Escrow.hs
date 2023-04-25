@@ -8,10 +8,12 @@
 {-# LANGUAGE TypeApplications    #-}
 {-# LANGUAGE TypeFamilies        #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
-module Spec.Escrow( tests
+module Spec.Escrow( certification
+                  , tests
                   , redeemTrace
                   , redeem2Trace
                   , refundTrace
+                  , prop_CrashTolerance
                   , prop_Escrow
                   , prop_Escrow_DoubleSatisfaction
                   , prop_FinishEscrow
@@ -36,7 +38,9 @@ import Ledger.Typed.Scripts qualified as Scripts
 import Ledger.Value.CardanoAPI qualified as Value
 import Plutus.Contract hiding (currentSlot)
 import Plutus.Contract.Test
+import Plutus.Contract.Test.Certification
 import Plutus.Contract.Test.ContractModel
+import Plutus.Contract.Test.ContractModel.CrashTolerance
 import Plutus.Script.Utils.Ada qualified as Ada
 import Plutus.Script.Utils.Value
 
@@ -382,3 +386,43 @@ refundTrace = do
     _ <- Trace.waitNSlots 100
     Trace.callEndpoint @"refund-escrow" hdl1 ()
     void $ Trace.waitNSlots 1
+
+instance CrashTolerance EscrowModel where
+  available a          alive = (Key $ WalletKey w) `elem` alive
+    where w = case a of
+                Pay w _       -> w
+                Redeem w      -> w
+                Refund w      -> w
+                BadRefund w _ -> w
+
+  restartArguments _ WalletKey{} = ()
+
+prop_CrashTolerance :: Actions (WithCrashTolerance EscrowModel) -> Property
+prop_CrashTolerance = propRunActions_
+
+unitTest1 :: DL EscrowModel ()
+unitTest1 = do
+              val <- forAllQ $ chooseQ (10, 20)
+              action $ Pay w1 val
+              action $ Pay w2 val
+              action $ Pay w3 val
+              action $ Redeem w4
+
+
+unitTest2 :: DL EscrowModel ()
+unitTest2 = do
+              val <- forAllQ $ chooseQ (10, 20)
+              action $ Pay w1 val
+              waitUntilDL 100
+              action $ Refund w1
+
+-- | Certification.
+certification :: Certification EscrowModel
+certification = defaultCertification {
+    certNoLockedFunds = Just noLockProof,
+    certCrashTolerance = Just Instance,
+    certUnitTests = Just unitTest,
+    certDLTests = [("redeem test", unitTest1), ("refund test", unitTest2)],
+    certCoverageIndex      = covIdx
+  }
+  where unitTest _ = tests
