@@ -3,8 +3,8 @@ name:            escrow
 version:         1.2.0.0
 license:         Apache-2.0
 license-file:    LICENSE NOTICE
-maintainer:      jann.mueller@iohk.io
-author:          Manuel M T Chakravarty, Jann Müller
+maintainer:      alasdair.hill@iohk.io
+author:          Alasdair Hill
 stability:       experimental
 synopsis:
   Collection of smart contracts to develop the plutus/wallet interface
