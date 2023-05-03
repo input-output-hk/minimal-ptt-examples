@@ -19,7 +19,8 @@
       # packages = flake.packages;
 
 
-      packages.escrow = flake.packages."escrow:lib:certification";
+
+      packages.default = flake.packages."escrow:lib:escrow";
 
       #defaultPackage = flake.packages."escrow:test:escrow-test";
 
