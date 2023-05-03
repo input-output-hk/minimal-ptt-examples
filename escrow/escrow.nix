@@ -8,7 +8,21 @@
         src = "${self}/escrow";
         compiler-nix-name = "ghc8107";
       };
+      flake = escrow.flake { };
     in {
+
+      # packages.escrow = builtins.trace (flake.packages) (flake.packages."escrow");
+      #"certification:lib:certification" = <CODE>; "escrow:lib:escrow" = <CODE>; "escrow:test:escrow-test
+
+
+      #packages = builtins.trace (escrow.certification) flake.packages;
+      # packages = flake.packages;
+
+
+      packages.escrow = flake.packages."escrow:lib:certification";
+
+      #defaultPackage = flake.packages."escrow:test:escrow-test";
+
       devShells.escrow = escrow.shellFor {
         # tools = self.escrow-common.toolsFor escrow.index-state;
         buildInputs = [
@@ -18,7 +32,8 @@
         LANG = "C.UTF-8";
       };
 
-      packages.escrow = "escrow";
+
         # escrow.escrow.components.exes.escrow;
     };
+
 }

@@ -1,8 +1,6 @@
 cabal-version:   2.0
 name:            escrow
 version:         1.2.0.0
-license:         Apache-2.0
-license-file:    LICENSE NOTICE
 maintainer:      alasdair.hill@iohk.io
 author:          Alasdair Hill
 stability:       experimental
