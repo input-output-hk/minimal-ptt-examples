@@ -16,13 +16,12 @@
       #packages = builtins.trace (escrow.certification) flake.packages;
       # packages = flake.packages;
 
-      packages.default = flake.packages."escrow:lib:escrow";
-      packages.iog.dapp = flake.packages."certification:lib:certification";
+      packages.default = flake.packages."certification:lib:certification";
 
       #defaultPackage = flake.packages."escrow:test:escrow-test";
 
       devShells.escrow = escrow.shellFor {
-        # tools = self.escrow-common.toolsFor escrow.index-state;
+        tools = self.escrow-common.toolsFor escrow.index-state;
         buildInputs = [
           ## For UTF-8 locales
           pkgs.glibcLocales
@@ -33,4 +32,5 @@
 
         # escrow.escrow.components.exes.escrow;
     };
+
 }

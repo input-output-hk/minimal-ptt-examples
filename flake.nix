@@ -11,26 +11,6 @@
     };
   };
 
-outputs = { self, flake-utils, ... }@inputs:
-    (flake-utils.lib.eachSystem [ "x86_64-linux" "x86_64-darwin" ] (system:
-      let
-        topLevel = import escrow/escrow.nix {
-          inherit system;
-          sources = inputs;
-        };
-      in
-      {
-        #packages = topLevel.bitte-packages;
-        legacyPackages = topLevel;
-        iog.dapp = topLevel.escrow;
-      })) // {
-      iog.dapp = self.legacyPackages.x86_64-linux.escrow;
-    };
-
-
-
-
-/*
   outputs = inputs@{ flake-parts, CHaP, haskellNix, ... }:
 
     flake-parts.lib.mkFlake { inherit inputs; } {
@@ -47,5 +27,4 @@ outputs = { self, flake-utils, ... }@inputs:
       perSystem = { pkgs, ... }: { formatter = pkgs.nixfmt; };
 
     };
-*/
 }
