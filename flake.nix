@@ -16,7 +16,6 @@
     flake-parts.lib.mkFlake { inherit inputs; } {
 
       flake.internal-lib = import ./internal-lib.nix;
-      flake.dapp = import escrow/escrow.nix;
 
       systems = [ "x86_64-linux" "aarch64-darwin" "x86_64-darwin" ];
 
@@ -27,7 +26,7 @@
 
       perSystem = { pkgs, ... }: {formatter = pkgs.nixfmt; };
 
-      flake.iog.dapp = escrow/escrow.nix;
+      flake.iog.dapp = import escrow/escrow.nix;
 
     };
 
