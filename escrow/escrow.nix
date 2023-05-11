@@ -16,8 +16,8 @@
       #packages = builtins.trace (escrow.certification) flake.packages;
       # packages = flake.packages;
 
-      packages.default = flake.packages."escrow:lib:escrow";
-      packages.iog.dapp = flake.packages."certification:lib:certification";
+      packages.escrow = flake.packages."escrow:lib:escrow";
+      packages.default = flake.packages."certification:lib:certification";
 
       #defaultPackage = flake.packages."escrow:test:escrow-test";
 
@@ -33,4 +33,5 @@
 
         # escrow.escrow.components.exes.escrow;
     };
+  
 }
