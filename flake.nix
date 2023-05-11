@@ -11,24 +11,36 @@
     };
   };
 
-  outputs = inputs@{ flake-parts, CHaP, haskellNix, ... }:
+  outputs = { self, flake-utils, CHaP, haskellNix, nixpkgs, ...}@inputs:
+    (flake-utils.lib.eachSystem [ "x86_64-linux" "x86_64-darwin" ] (system:
+      let
+        pkgs = import nixpkgs { inherit system; };
+        internal-lib = import ./internal-lib.nix;
+        escrow = internal-lib.make-haskell-nix-pkg {
+          inherit (inputs) haskellNix CHaP;
+          inherit pkgs;
+          src = "${self}/escrow";
+          compiler-nix-name = "ghc8107";
+        };
+        flake = escrow.flake { };
+      in
+      {
 
-    flake-parts.lib.mkFlake { inherit inputs; } {
+        packages.escrow = flake.packages."escrow:lib:escrow";
+        packages.default = flake.packages."certification:lib:certification";
 
-      flake.internal-lib = import ./internal-lib.nix;
 
-      systems = [ "x86_64-linux" "aarch64-darwin" "x86_64-darwin" ];
+        devShells.escrow = escrow.shellFor {
+        # tools = self.escrow-common.toolsFor escrow.index-state;
+          buildInputs = [
+          ## For UTF-8 locales
+          pkgs.glibcLocales
+          ];
+          LANG = "C.UTF-8";
+        };
 
-      imports = [
-        escrow/escrow-common.nix
-        escrow/escrow.nix
-      ];
-
-      perSystem = { pkgs, ... }: {formatter = pkgs.nixfmt; };
-
-      flake.iog.dapp = import escrow/escrow.nix;
-
-    };
+        iog.dapp = escrow;
+      }));
 
 }
 
