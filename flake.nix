@@ -40,9 +40,9 @@
         };
 
         legacyPackages = escrow;
-        iog.dapp = escrow;
+        iog.dapp = escrow.haskell.project;
       })) // {
-        iog.dapp = self.legacyPackages.x86_64-linux.escrow;
+        iog.dapp = self.legacyPackages.x86_64-linux.escrow.haskell.project;
       };
 
   nixConfig = {
