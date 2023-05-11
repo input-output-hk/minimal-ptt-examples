@@ -46,13 +46,3 @@
       };
 
 }
-
-
-#      let
-#          topLevel = import escrow/escrow.nix {
-#            sources = inputs;
-#          };
-#        in
-#          {
-#              packages.iog.dappss = topLevel.escrow;
-#          };
