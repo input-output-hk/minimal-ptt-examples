@@ -39,8 +39,11 @@
           LANG = "C.UTF-8";
         };
 
+        legacyPackages = escrow;
         iog.dapp = escrow;
-      }));
+      })) // {
+        iog.dapp = self.legacyPackages.x86_64-linux.escrow;
+      };
 
 }
 
