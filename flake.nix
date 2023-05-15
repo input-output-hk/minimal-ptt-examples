@@ -40,9 +40,9 @@
         };
 
         legacyPackages = escrow;
-        iog.dapp = escrow.project;
+        iog.dapp = escrow;
       })) // {
-        iog.dapp = self.legacyPackages.x86_64-linux.escrow.project;
+        iog.dapp = self.legacyPackages.x86_64-linux;
       };
 
   nixConfig = {
