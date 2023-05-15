@@ -40,9 +40,9 @@
         };
 
         legacyPackages = rootProject;
-        iog.dapp = rootProject.certification.project;
+        iog.dapp = rootProject;
       })) // {
-        iog.dapp = self.legacyPackages.x86_64-linux.certification.project;
+        iog.dapp = self.legacyPackages.x86_64-linux;
       };
 
   nixConfig = {
