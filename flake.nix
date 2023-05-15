@@ -16,13 +16,13 @@
       let
         pkgs = import nixpkgs { inherit system; };
         internal-lib = import ./internal-lib.nix;
-        escrow = internal-lib.make-haskell-nix-pkg {
+        rootProject = internal-lib.make-haskell-nix-pkg {
           inherit (inputs) haskellNix CHaP;
           inherit pkgs;
           src = "${self}/escrow";
           compiler-nix-name = "ghc8107";
         };
-        flake = escrow.flake { };
+        flake = rootProject.flake { };
       in
       {
 
@@ -30,7 +30,7 @@
         packages.default = flake.packages."certification:lib:certification";
 
 
-        devShells.escrow = escrow.shellFor {
+        devShells.escrow = rootProject.shellFor {
         # tools = self.escrow-common.toolsFor escrow.index-state;
           buildInputs = [
           ## For UTF-8 locales
@@ -39,10 +39,10 @@
           LANG = "C.UTF-8";
         };
 
-        legacyPackages = escrow;
-        iog.dapp = escrow;
+        legacyPackages = rootProject;
+        iog.dapp = rootProject.certification.project;
       })) // {
-        iog.dapp = self.legacyPackages.x86_64-linux;
+        iog.dapp = self.legacyPackages.x86_64-linux.certification.project;
       };
 
   nixConfig = {
