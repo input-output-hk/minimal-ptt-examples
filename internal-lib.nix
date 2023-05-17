@@ -12,7 +12,6 @@
         thePackage = final.haskell-nix.project {
           inherit src compiler-nix-name;
 
-          sha256map = import ./sha256map.nix;
           inputMap = {
             "https://input-output-hk.github.io/cardano-haskell-packages" = CHaP;
           };
