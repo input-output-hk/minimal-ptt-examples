@@ -39,12 +39,11 @@ source-repository-package
     plutus-chain-index
     plutus-chain-index-core
     plutus-contract
-    plutus-contract-certification
     plutus-pab
     plutus-ledger
     plutus-script-utils
     plutus-tx-constraints
-
+    plutus-contract-certification
 
 -- We never, ever, want this.
 write-ghc-environment-files: never
