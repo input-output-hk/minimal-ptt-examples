@@ -30,7 +30,7 @@
         packages.default = flake.packages."certification:lib:certification";
 
 
-        devShells.escrow = rootProject.shellFor {
+        devShells.default = rootProject.shellFor {
         # tools = self.escrow-common.toolsFor escrow.index-state;
           buildInputs = [
           ## For UTF-8 locales
