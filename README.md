@@ -9,3 +9,7 @@
 To enter testing repl after step 2 run:
 
  - `cabal repl escrow-test`
+
+To run tests after step 2 run: 
+
+- `cabal run escrow-test
