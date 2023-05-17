@@ -28,6 +28,7 @@ source-repository-package
   type: git
   location: https://github.com/input-output-hk/plutus-apps.git
   tag: 5c54f209322f62b73d88150ecb5d781d515de746
+  --sha256: krHvT653ngPWRaB0XVfupCkLUnohhmymjG6Vm9bawv0=
   subdir:
     cardano-node-emulator
     cardano-streaming
@@ -43,7 +44,7 @@ source-repository-package
     plutus-ledger
     plutus-script-utils
     plutus-tx-constraints
-  --sha256: krHvT653ngPWRaB0XVfupCkLUnohhmymjG6Vm9bawv0=
+
 
 -- We never, ever, want this.
 write-ghc-environment-files: never
