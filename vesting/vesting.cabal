@@ -1,5 +1,5 @@
 cabal-version:   2.0
-name:            escrow
+name:            vesting
 version:         1.2.0.0
 maintainer:      alasdair.hill@iohk.io
 author:          Alasdair Hill
@@ -27,11 +27,8 @@ flag defer-plugin-errors
 
 library
   exposed-modules:
-    Contract.Escrow
-    Spec.Escrow
-  other-modules:
-    Spec.Endpoints
-
+    Contract.Vesting
+    Spec.Vesting
 
   hs-source-dirs:     src
                       tests
@@ -98,13 +95,12 @@ library
   if flag(defer-plugin-errors)
     ghc-options: -fplugin-opt PlutusTx.Plugin:defer-errors
 
-test-suite escrow-test
+test-suite vesting-test
   type:               exitcode-stdio-1.0
   main-is:            Spec.hs
   hs-source-dirs:     tests
   other-modules:
-    Spec.Escrow
-    Spec.Endpoints
+    Spec.Vesting
 
   default-language:   Haskell2010
   default-extensions: ImportQualifiedPost
@@ -128,7 +124,7 @@ test-suite escrow-test
     , plutus-ledger                  >=1.1.0
     , plutus-script-utils            >=1.1.0
     , plutus-tx-constraints          >=1.1.0
-    , escrow                         >=1.1.0
+    , vesting                        >=1.1.0
 
   --------------------------
   -- Other IOG dependencies

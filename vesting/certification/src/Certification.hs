@@ -1,3 +1,3 @@
 module Certification (certification) where
 
-import Spec.Escrow (certification)
+import Spec.Vesting (certification)

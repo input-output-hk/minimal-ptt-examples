@@ -11,5 +11,5 @@ main = defaultMain tests
 tests :: TestTree
 tests =
   testGroup "use cases" [
-    Spec.Escrow.tests
+    Spec.Vesting.tests
     ]
