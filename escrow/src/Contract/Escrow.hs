@@ -12,8 +12,6 @@
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE TypeOperators        #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# OPTIONS_GHC -fplugin-opt PlutusTx.Plugin:debug-context #-}
-{-# OPTIONS_GHC -g -fplugin-opt PlutusTx.Plugin:coverage-all #-}
 -- | A general-purpose escrow contract in Plutus
 module Contract.Escrow(
     -- $escrow
@@ -41,8 +39,6 @@ module Contract.Escrow(
     , EscrowSchema
     -- * Exposed for test endpoints
     , Action(..)
-    -- * Coverage
-    , covIdx
     ) where
 
 import Control.Lens (_1, has, makeClassyPrisms, only, review)
@@ -52,8 +48,6 @@ import Data.Aeson (FromJSON, ToJSON)
 import GHC.Generics (Generic)
 
 import PlutusTx qualified
-import PlutusTx.Code
-import PlutusTx.Coverage
 import PlutusTx.Prelude hiding (Applicative (..), Semigroup (..), check, foldMap)
 
 import Cardano.Node.Emulator.Params (pNetworkId)
@@ -376,6 +370,3 @@ payRedeemRefund params vl = do
     -- Pay the value 'vl' into the contract
     _ <- pay inst params vl
     go
-
-covIdx :: CoverageIndex
-covIdx = getCovIdx $$(PlutusTx.compile [|| validate ||])

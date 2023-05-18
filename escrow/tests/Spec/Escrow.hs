@@ -422,7 +422,6 @@ certification = defaultCertification {
     certNoLockedFunds = Just noLockProof,
     certCrashTolerance = Just Instance,
     certUnitTests = Just unitTest,
-    certDLTests = [("redeem test", unitTest1), ("refund test", unitTest2)],
-    certCoverageIndex      = covIdx
+    certDLTests = [("redeem test", unitTest1), ("refund test", unitTest2)]
   }
   where unitTest _ = tests
