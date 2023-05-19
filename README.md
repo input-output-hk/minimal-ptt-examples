@@ -4,12 +4,12 @@
 
 1. go to the escrow folder 
 2. run `nix develop`
-3. `cabal build escrow`
+3. `cabal build certification`
 
-To enter testing repl after step 2 run in the escrow directory:
+To enter testing repl after step 2 run in the vesting directory:
 
- - `cabal repl escrow-test`
+ - `cabal repl vesting-test`
 
-To run tests after step 2 run in the escrow directory:
+To run tests after step 2 run in the vesting directory:
 
- - `cabal run escrow-test`
+ - `cabal run vesting-test`

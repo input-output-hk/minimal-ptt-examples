@@ -14,10 +14,12 @@
 {-# OPTIONS_GHC -fno-warn-incomplete-uni-patterns -fno-warn-unused-do-bind -fno-warn-name-shadowing #-}
 module Spec.Vesting (VestingModel
                     , tests
+                    , modelTests
                     , prop_Vesting
                     , prop_CheckNoLockedFundsProof
                     , retrieveFundsTrace
-                    , certification) where
+                    , certification
+                    , check_propVestingWithCoverage) where
 
 import Control.Lens hiding (elements)
 import Control.Monad (void, when)
@@ -42,7 +44,7 @@ import PlutusTx.Numeric qualified as Numeric
 import Prelude
 import Test.QuickCheck hiding ((.&&.))
 import Plutus.Contract.Test.Certification
-
+import Plutus.Contract.Test.ContractModel.CrashTolerance
 
 -- | The scenario used in the property tests. It sets up a vesting scheme for a
 --   total of 60 ada over 20 blocks (20 ada can be taken out before
@@ -261,14 +263,20 @@ tests =
 
     , goldenPir "test/Spec/vesting.pir" $$(PlutusTx.compile [|| validate ||])
     , HUnit.testCaseSteps "script size is reasonable" $ \step -> reasonable' step (vestingScript $ vesting startTime) 33000
-    , testProperty "prop_Vesting" $ withMaxSuccess 20 prop_Vesting
-    , testProperty "prop_CheckNoLockedFundsProof" $ withMaxSuccess 20 prop_CheckNoLockedFundsProof
-    -- TODO: re-activate when double satisfaction is turned on again
-    -- , testProperty "prop_doubleSatisfaction" $ withMaxSuccess 20 prop_doubleSatisfaction
     ]
 
     where
         startTime = TimeSlot.scSlotZeroTime def
+
+modelTests :: TestTree
+modelTests =
+    testGroup "vesting model tests"
+    [
+      testProperty "prop_Vesting" $ withMaxSuccess 20 prop_Vesting
+      , testProperty "prop_CheckNoLockedFundsProof" $ withMaxSuccess 20 prop_CheckNoLockedFundsProof
+    -- TODO: re-activate when double satisfaction is turned on again
+    -- , testProperty "prop_doubleSatisfaction" $ withMaxSuccess 20 prop_doubleSatisfaction
+    ]
 
 -- TODO: re-activate when double satisfaction is turned on again
 -- prop_doubleSatisfaction :: Actions VestingModel -> Property
@@ -292,12 +300,48 @@ expectedError =
         mustRemainLocked = Ada.adaValueOf 40
     in InsufficientFundsError payment maxPayment mustRemainLocked
 
+instance CrashTolerance VestingModel where
+  available a          alive = (Key $ WalletKey w) `elem` alive
+    where w = case a of
+                Vest w        -> w
+                Retrieve w _  -> w
+
+  restartArguments _ WalletKey{} = ()
+
+
+prop_CrashTolerance :: Actions (WithCrashTolerance VestingModel) -> Property
+prop_CrashTolerance = propRunActions_
+
+check_propVestingWithCoverage :: IO ()
+check_propVestingWithCoverage = do
+  cr <- quickCheckWithCoverage stdArgs (set coverageIndex covIdx defaultCoverageOptions) $ \covopts ->
+    withMaxSuccess 50 $ propRunActionsWithOptions @VestingModel defaultCheckOptions covopts (const (pure True))
+  writeCoverageReport "Vesting" cr
+
 -- | Certification.
 certification :: Certification VestingModel
 certification = defaultCertification {
-    certNoLockedFunds = Just noLockProof
-    -- certCrashTolerance = Just Instance,
-    -- certUnitTests = Just unitTest,
-    -- certDLTests = [("redeem test", unitTest1), ("refund test", unitTest2)]
+    certNoLockedFunds = Just noLockProof,
+    certCrashTolerance = Just Instance,
+    certUnitTests = Just unitTest,
+    certCoverageIndex = covIdx
   }
-  -- where unitTest _ = tests
+    where unitTest _ = tests
+
+{-
+unitTest1 :: DL EscrowModel ()
+unitTest1 = do
+              val <- forAllQ $ chooseQ (10, 20)
+              action $ Pay w1 val
+              action $ Pay w2 val
+              action $ Pay w3 val
+              action $ Redeem w4
+
+
+unitTest2 :: DL EscrowModel ()
+unitTest2 = do
+              val <- forAllQ $ chooseQ (10, 20)
+              action $ Pay w1 val
+              waitUntilDL 100
+              action $ Refund w1
+-}

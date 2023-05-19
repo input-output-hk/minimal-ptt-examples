@@ -13,6 +13,7 @@
 {-# LANGUAGE TypeOperators      #-}
 {-# OPTIONS_GHC -fno-ignore-interface-pragmas #-}
 {-# OPTIONS_GHC -fno-specialise #-}
+{-# OPTIONS_GHC -g -fplugin-opt PlutusTx.Plugin:coverage-all #-}
 module Contract.Vesting (
     -- $vesting
     VestingParams(..),
@@ -23,8 +24,8 @@ module Contract.Vesting (
     totalAmount,
     vestingContract,
     validate,
-    vestingScript
-    ) where
+    vestingScript,
+    covIdx) where
 
 import Control.Lens
 import Control.Monad (void, when)
@@ -51,6 +52,9 @@ import Plutus.V2.Ledger.Contexts qualified as V2
 import PlutusTx qualified
 import PlutusTx.Prelude hiding (Semigroup (..), fold)
 import Prelude qualified as Haskell
+
+import Plutus.Contract.Test.Coverage.Analysis
+import PlutusTx.Coverage
 
 {- |
     A simple vesting scheme. Money is locked by a contract and may only be
@@ -232,3 +236,6 @@ retrieveFundsC vesting payment = mapError (review _VestingError) $ do
                   <> Constraints.unspentOutputs unspentOutputs) tx
       >>= adjustUnbalancedTx >>= void . submitUnbalancedTx
     return liveness
+
+covIdx :: CoverageIndex
+covIdx = computeRefinedCoverageIndex $$(PlutusTx.compile [|| \a b c d -> check (validate a b c d) ||])
