@@ -3,9 +3,9 @@
 # Table of Contents
 - [Overview](#overview)
 - [Prerequisites](#prerequisites)
-   - [Sub paragraph](#subparagraph)
-- [Third Example](#third-example)
-- [Fourth Example](#fourth-examplehttpwwwfourthexamplecom)
+- [Additional Nix Requirements](#nix)
+- [Additional Cabal Requirements](#cabal)
+- [IMPORTANT: How to depend on plutus-apps](#important)
 
 
 ## Overview <a name="overview"></a>
@@ -20,7 +20,7 @@ Examples containing Dapps with certification objects that are compatible with th
 2. The DApp needs to depend on [plutus-apps](https://github.com/input-output-hk/plutus-apps/).
 3. The DApp needs to use a version of plutus-apps compatible with the `plutus-contract-certification` project from the v1.2.0 [release](https://github.com/input-output-hk/plutus-apps/tree/v1.2.0/plutus-contract-certification) of `plutus-apps`. 
 
-## Additional Nix Requirements 
+## Additional Nix Requirements <a name="nix"></a>
 
 In order for the tool to build the project the nix flake needs to be exposed for the DApp. It is assumed that the flake is exposed to a variable called `iog.dapp`. In the [minimal examples repo](https://github.com/Ali-Hill/minimal-ptt-examples) the flake for the haskell project is called `rootProject`. The flake is exposed in the minimal example by the adding following code to `flake.nix`:
 
@@ -33,7 +33,7 @@ iog.dapp = self.legacyPackages.x86_64-linux;
 ```
 It is only necessary for the DApp to be able to build on an x86_64 linux architecture.
 
-## Additional Cabal Requirements 
+## Additional Cabal Requirements <a name="cabal"></a>
 
 It is assumed that there is cabal project called `certification.cabal` that is exposed by the flake. The certification project should simply expose a module containing the certificaiton object called `certification` that is to be run on the Plutus Testing Tool. 
 
@@ -56,7 +56,7 @@ library
     , escrow
 ```
 
-## IMPORTANT: How to depend on plutus-apps
+## IMPORTANT: How to depend on plutus-apps <a name="important"></a>
 
 The Plutus Testing Tool modifies the `cabal.project` file to remove the dependency on `plutus-contract-certification`. At the moment the `source-repository-package` definition needs to include the `--sha256` definition above the `subdir:` definition. The dependency on `plutus-contract-certification` also needs to go at the end of the `subdir:` list. An example of this is shown below: 
 
