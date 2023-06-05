@@ -65,7 +65,7 @@ import Ledger.Tx.CardanoAPI qualified as CardanoAPI
 import Cardano.Node.Emulator.Params
 
 
-import Control.Lens (review, view) -- makeClassyPrisms , view)
+import Control.Lens (review, view, has, only) -- makeClassyPrisms , view)
 
 
 -- import qualified Ledger.Typed.Scripts as Pl
@@ -167,7 +167,68 @@ redeem inst submitter escrow = do
                   })
         return (RedeemSuccess (L.getCardanoTxId tx))
 
+newtype RefundSuccess = RefundSuccess L.TxId
+    deriving (Eq, Show)
 
+
+
+{-
+refundFilter :: L.PaymentPubKeyHash -> [(TxOutRef, TxOut)] -> [(TxOutRef, TxOut)]
+refundFilter pk sout =
+    let
+      flt (_ , ciTxOut) = (\case
+                            NoOutputDatum	-> False
+                            OutputDatumHash dh -> dh == L.datumHash (Datum (Pl.toBuiltinData pk))
+                            OutputDatum d -> d == (Datum (Pl.toBuiltinData pk))) (txOutDatum ciTxOut)
+        -- either id datumHash (TxOutDatum ciTxOut) == datumHash (Datum (Pl.toBuiltinData pk))
+    in
+      (filter flt sout)
+-}
+
+refundFilter :: L.PaymentPubKeyHash -> [TxOut] -> [TxOut]
+refundFilter pk sout =
+    let
+      flt ciTxOut = (\case
+                            NoOutputDatum	-> False
+                            OutputDatumHash dh -> dh == L.datumHash (Datum (Pl.toBuiltinData pk))
+                            OutputDatum d -> d == (Datum (Pl.toBuiltinData pk))) (txOutDatum ciTxOut)
+        -- either id datumHash (TxOutDatum ciTxOut) == datumHash (Datum (Pl.toBuiltinData pk))
+    in
+      (filter flt sout)
+
+
+refund ::
+    MonadBlockChain m
+    => Pl.TypedValidator Escrow
+    -> Wallet
+    -> EscrowParams Datum
+    -> m RefundSuccess
+refund inst submitter escrow = do
+    outputs <-
+      runUtxoSearch $
+        utxosAtSearch (Pl.validatorAddress inst)
+    current <- currentTime
+    let
+      pk = walletPKHash submitter
+      uouts = refundFilter (L.PaymentPubKeyHash pk) (map snd outputs)
+      deadline = escrowDeadline escrow
+    validityInterval <- slotRangeAfter deadline
+    tx <- (validateTxSkel $
+            txSkelTemplate
+              { txSkelOpts = def {txOptEnsureMinAda = True},
+                txSkelSigners = [submitter],
+                -- txSkelIns = [map (SpendsScript inst Redeem . fst) unspentOutputs],
+                -- txSkelIns = Map.singleton (fst (head outputs)) $ TxSkelRedeemerForScript Redeem,
+                -- txSkelOuts = (map (TxSkelRedeemerForScript inst Refund) uouts)
+                -- ,
+                txSkelValidityRange = validityInterval
+              })
+    if (fst current) <= escrowDeadline escrow
+    then error "refund before deadline"
+    else if uouts == []
+    then error "no scripts to refund"
+    else
+      return (RefundSuccess (L.getCardanoTxId tx))
 {-
 redeem ::
     MonadBlockChain m

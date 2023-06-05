@@ -62,7 +62,9 @@ tests =
         testCase "Can redeem"
                 $ testSucceedsFrom def testInit redeemTrace,
         testCase "can redeem even if more money than required has been paid in"
-                $ testSucceedsFrom def testInit redeem2Trace]
+                $ testSucceedsFrom def testInit redeem2Trace,
+        testCase "Can refund"
+                $ testSucceedsFrom def testInit refundTrace]
 
 usageExample :: Assertion
 usageExample = testSucceedsFrom def testInit $ do
@@ -89,6 +91,55 @@ redeem2Trace = do
     pay val (wallet 2) params (Ada.adaValueOf 10)
     pay val (wallet 3) params (Ada.adaValueOf 10)
     redeem val (wallet 1) params
+
+refundTrace :: MonadBlockChain m => m RefundSuccess
+refundTrace = do
+    (_ , t0) <- currentTime
+    let
+        val = (typedValidator (escrowParams (TimeSlot.scSlotZeroTime def)))
+        params = (escrowParams (TimeSlot.scSlotZeroTime def))
+        deadline = t0 + 60_000
+    pay val (wallet 1) params (Ada.adaValueOf 20)
+    deadlineSlot <- getEnclosingSlot deadline
+    void $ awaitSlot $ deadlineSlot + 1
+    refund val (wallet 1) params
+
+
+{-
+> import Cooked
+> import qualified Plutus.Script.Utils.Ada as Pl
+> printCooked . runMockChain . validateTxSkel $
+      txSkelTemplate
+        { txSkelOuts = [paysPK (walletPKHash $ wallet 2) (Pl.adaValueOf 10)],
+          txSkelSigners = [wallet 1]
+        }
+[...]
+- UTxO state:
+  • pubkey #a2c20c7 (wallet 1)
+    - Lovelace: 89_828_471
+    - (×9) Lovelace: 100_000_000
+  • pubkey #80a4f45 (wallet 2)
+    - Lovelace: 10_000_000
+    - (×10) Lovelace: 100_000_000
+  • pubkey #2e0ad60 (wallet 3)
+    - (×10) Lovelace: 100_000_000
+  • pubkey #557d23c (wallet 4)
+    - (×10) Lovelace: 100_000_000
+  • pubkey #bf342dd (wallet 5)
+    - (×10) Lovelace: 100_000_000
+  • pubkey #97add5c (wallet 6)
+    - (×10) Lovelace: 100_000_000
+  • pubkey #c605888 (wallet 7)
+    - (×10) Lovelace: 100_000_000
+  • pubkey #8952ed1 (wallet 8)
+    - (×10) Lovelace: 100_000_000
+  • pubkey #dfe12ac (wallet 9)
+    - (×10) Lovelace: 100_000_000
+  • pubkey #a96a668 (wallet 10)
+    - (×10) Lovelace: 100_000_000
+-}
+
+
 
 {--- typedValidator
 
