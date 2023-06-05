@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main(main) where
 
-import Spec.Escrow qualified
+import Spec.EscrowSpec qualified
 
 import Test.Tasty
 import Cooked.Wallet
@@ -12,5 +12,5 @@ main = defaultMain tests
 tests :: TestTree
 tests =
   testGroup "use cases" [
-    Spec.Escrow.tests
+    Spec.EscrowSpec.tests
     ]

@@ -11,19 +11,56 @@
     };
   };
 
-  outputs = inputs@{ flake-parts, CHaP, haskellNix, ... }:
+  outputs = { self, flake-utils, CHaP, haskellNix, nixpkgs, ...}@inputs:
+    (flake-utils.lib.eachSystem [ "x86_64-linux" "x86_64-darwin" ] (system:
+      let
+        pkgs = import nixpkgs { inherit system; };
+        internal-lib = import ./internal-lib.nix;
+        rootProject = internal-lib.make-haskell-nix-pkg {
+          inherit (inputs) haskellNix CHaP;
+          inherit pkgs;
+          src = "${self}/escrow";
+          compiler-nix-name = "ghc8107";
+        };
+        flake = rootProject.flake { };
+        #haskellPackages = pkgs.haskell.packages.${"ghc8107"};
+      in
+      {
 
-    flake-parts.lib.mkFlake { inherit inputs; } {
+        packages.escrow = flake.packages."escrow:lib:escrow";
+        packages.default = flake.packages."certification:lib:certification";
 
-      flake.internal-lib = import ./internal-lib.nix;
 
-      systems = [ "x86_64-linux" "aarch64-darwin" "x86_64-darwin" ];
+        devShells.default = rootProject.shellFor {
+        # tools = self.escrow-common.toolsFor escrow.index-state;
+        # buildInputs = with haskellPackages [
+          buildInputs = [
+          #haskell-language-server
+          #haskell-language-server
+          #hlint
+          ## For UTF-8 locales
+          pkgs.glibcLocales
+          ];
+          LANG = "C.UTF-8";
+        };
 
-      imports = [
-        escrow/escrow-common.nix
-        escrow/escrow.nix
-      ];
+        legacyPackages = rootProject;
+        iog.dapp = rootProject;
+      })) // {
+        iog.dapp = self.legacyPackages.x86_64-linux;
+      };
 
-      perSystem = { pkgs, ... }: { formatter = pkgs.nixfmt; };
-    };
+  nixConfig = {
+    extra-substituters = [
+      "https://cache.iog.io"
+      "https://cache.zw3rk.com"
+    ];
+    extra-trusted-public-keys = [
+      "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ="
+      "loony-tools:pr9m4BkM/5/eSTZlkQyRt57Jz7OMBxNSUiMC4FkcNfk="
+    ];
+    allow-import-from-derivation = true;
+    accept-flake-config = true;
+  };
+
 }

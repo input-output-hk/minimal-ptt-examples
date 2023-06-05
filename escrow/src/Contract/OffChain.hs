@@ -62,6 +62,9 @@ import Prelude hiding ((-))
 import qualified Plutus.V2.Ledger.Api as Pl
 import Ledger.Tx.CardanoAPI qualified as CardanoAPI
 
+import Cardano.Node.Emulator.Params
+
+
 import Control.Lens (review, view) -- makeClassyPrisms , view)
 
 
@@ -123,27 +126,27 @@ pay inst submitter escrow vl = do
 newtype RedeemSuccess = RedeemSuccess L.TxId
     deriving (Eq, Show)
 
+--                  { txSkelOpts = def {txOptEnsureMinAda = True, txOptEmulatorParamsModification = Just $
+--  EmulatorParamsModification increaseTransactionLimits},
+
 redeem ::
     MonadBlockChain m
     => Pl.TypedValidator Escrow
     -> Wallet
-    -> Pl.TxOutRef
+--     -> Pl.TxOutRef
     -> EscrowParams Datum
     -> m RedeemSuccess
-redeem inst submitter oref escrow = do
-    [(oref, output)] <-
-      runUtxoSearch $
-        utxosAtSearch (Pl.validatorAddress inst)
-    easy <-
+redeem inst submitter escrow = do
+    outputs <-
       runUtxoSearch $
         utxosAtSearch (Pl.validatorAddress inst)
     -- unspentOutputs <- scriptUtxosSuchThat inst (\_ _ -> True)
     current <- currentTime -- FIX
     let
-      uouts = map snd easy
+      uouts = map snd outputs
       deadline = escrowDeadline escrow
-    validityInterval <- slotRangeAfter deadline
-    if (fst current) >= deadline
+    validityInterval <- slotRangeBefore (deadline - 1)
+    if (fst current) >= deadline -- FIX
     then error "Deadline Passed"
 --    else if foldMap (view Tx.ciTxOutValue) uouts `lt` targetTotal escrow
     else if foldMap txOutValue uouts `lt` targetTotal escrow
@@ -154,7 +157,7 @@ redeem inst submitter oref escrow = do
                   { txSkelOpts = def {txOptEnsureMinAda = True},
                     txSkelSigners = [submitter],
                     -- txSkelIns = [map (SpendsScript inst Redeem . fst) unspentOutputs],
-                    txSkelIns = Map.singleton oref $ TxSkelRedeemerForScript Redeem,
+                    -- txSkelIns = Map.singleton (fst (head outputs)) $ TxSkelRedeemerForScript Redeem,
                     txSkelOuts = map (\case
                                         PaymentPubKeyTarget pk vl -> paysPK (L.unPaymentPubKeyHash pk) vl
                                         ScriptTarget _ _ _ -> error "can't use script with cooked")

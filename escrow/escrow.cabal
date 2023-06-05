@@ -105,8 +105,8 @@ test-suite escrow-test
   main-is:            Spec.hs
   hs-source-dirs:     tests
   other-modules:
-    Spec.Escrow
-    Spec.Endpoints
+    Spec.EscrowSpec
+    -- Spec.Endpoints
 
   default-language:   Haskell2010
   default-extensions: ImportQualifiedPost

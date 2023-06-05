@@ -13,7 +13,7 @@
 {-# LANGUAGE TypeOperators        #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -fplugin-opt PlutusTx.Plugin:debug-context #-}
-{-# OPTIONS_GHC -g -fplugin-opt PlutusTx.Plugin:coverage-all #-}
+-- {-# OPTIONS_GHC -g -fplugin-opt PlutusTx.Plugin:coverage-all #-}
 -- | A general-purpose escrow contract in Plutus
 module Contract.Escrow(
     -- $escrow
@@ -43,7 +43,7 @@ module Contract.Escrow(
     -- * Exposed for test endpoints
     , Action(..)
     -- * Coverage
-    , covIdx
+    -- , covIdx
     ) where
 
 import Control.Lens (_1, has, makeClassyPrisms, only, review)
@@ -395,5 +395,5 @@ payRedeemRefund params vl = do
     go
 -}
 
-covIdx :: CoverageIndex
-covIdx = getCovIdx $$(PlutusTx.compile [|| validate ||])
+-- covIdx :: CoverageIndex
+-- covIdx = getCovIdx $$(PlutusTx.compile [|| validate ||])
