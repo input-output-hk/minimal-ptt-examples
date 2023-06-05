@@ -4,6 +4,7 @@ module Main(main) where
 import Spec.Escrow qualified
 
 import Test.Tasty
+import Cooked.Wallet
 
 main :: IO ()
 main = defaultMain tests

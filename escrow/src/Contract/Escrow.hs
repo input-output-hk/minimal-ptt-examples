@@ -25,7 +25,8 @@ module Contract.Escrow(
     , payToScriptTarget
     , payToPaymentPubKeyTarget
     , targetTotal
-    , escrowContract
+    , typedValidator
+{-  , escrowContract
     , payRedeemRefund
     , typedValidator
     -- * Actions
@@ -38,7 +39,7 @@ module Contract.Escrow(
     , RedeemFailReason(..)
     , RedeemSuccess(..)
     , RefundSuccess(..)
-    , EscrowSchema
+    , EscrowSchema -}
     -- * Exposed for test endpoints
     , Action(..)
     -- * Coverage
@@ -58,7 +59,7 @@ import PlutusTx.Prelude hiding (Applicative (..), Semigroup (..), check, foldMap
 
 import Cardano.Node.Emulator.Params (pNetworkId)
 import Ledger (POSIXTime, PaymentPubKeyHash (unPaymentPubKeyHash), TxId, getCardanoTxId)
-import Ledger qualified
+import Ledger qualified as L
 import Ledger.Interval (after, before)
 import Ledger.Tx qualified as Tx
 import Ledger.Tx.Constraints (TxConstraints)
@@ -77,6 +78,7 @@ import Plutus.V2.Ledger.Tx (OutputDatum (OutputDatumHash))
 
 import Prelude (Semigroup (..), foldMap)
 import Prelude qualified as Haskell
+import Cooked
 
 type EscrowSchema =
         Endpoint "pay-escrow" Value
@@ -173,11 +175,22 @@ mkTx = \case
         <> Constraints.mustIncludeDatumInTx ds
 
 data Action = Redeem | Refund
+  deriving (Haskell.Show)
+
+instance Cooked.PrettyCooked Action where
+  prettyCookedOpt _ Redeem = "Redeem"
+  prettyCookedOpt _ Refund = "Refund"
+
+instance Eq Action where
+  {-# INLINEABLE (==) #-}
+  Redeem == Redeem = True
+  Refund == Refund = True
+  _ == _ = False
 
 data Escrow
 instance Scripts.ValidatorTypes Escrow where
     type instance RedeemerType Escrow = Action
-    type instance DatumType Escrow = PaymentPubKeyHash
+    type instance DatumType Escrow = L.PubKeyHash -- PaymentPubKeyHash
 
 PlutusTx.unstableMakeIsData ''Action
 PlutusTx.makeLift ''Action
@@ -204,7 +217,7 @@ meetsTarget ptx = \case
             _ -> False
 
 {-# INLINABLE validate #-}
-validate :: EscrowParams DatumHash -> PaymentPubKeyHash -> Action -> ScriptContext -> Bool
+validate :: EscrowParams DatumHash -> L.PubKeyHash -> Action -> ScriptContext -> Bool
 validate EscrowParams{escrowDeadline, escrowTargets} contributor action ScriptContext{scriptContextTxInfo} =
     case action of
         Redeem ->
@@ -212,7 +225,7 @@ validate EscrowParams{escrowDeadline, escrowTargets} contributor action ScriptCo
             && traceIfFalse "meetsTarget" (all (meetsTarget scriptContextTxInfo) escrowTargets)
         Refund ->
             traceIfFalse "escrowDeadline-before" ((escrowDeadline - 1) `before` txInfoValidRange scriptContextTxInfo)
-            && traceIfFalse "txSignedBy" (scriptContextTxInfo `txSignedBy` unPaymentPubKeyHash contributor)
+            && traceIfFalse "txSignedBy" (scriptContextTxInfo `txSignedBy` contributor)
 
 typedValidator :: EscrowParams Datum -> V2.TypedValidator Escrow
 typedValidator escrow = go (Haskell.fmap datumHash escrow) where
@@ -221,6 +234,8 @@ typedValidator escrow = go (Haskell.fmap datumHash escrow) where
         $$(PlutusTx.compile [|| wrap ||])
     wrap = Scripts.mkUntypedValidator
 
+
+{-
 escrowContract
     :: EscrowParams Datum
     -> Contract () EscrowSchema EscrowError ()
@@ -234,6 +249,8 @@ escrowContract escrow =
         [ void payAndRefund
         , void $ redeemEp escrow
         ]
+
+
 
 -- | 'pay' with an endpoint that gets the owner's public key and the
 --   contribution.
@@ -376,6 +393,7 @@ payRedeemRefund params vl = do
     -- Pay the value 'vl' into the contract
     _ <- pay inst params vl
     go
+-}
 
 covIdx :: CoverageIndex
 covIdx = getCovIdx $$(PlutusTx.compile [|| validate ||])

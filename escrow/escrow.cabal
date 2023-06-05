@@ -1,8 +1,6 @@
 cabal-version:   2.0
 name:            escrow
 version:         1.2.0.0
-license:         Apache-2.0
-license-file:    LICENSE NOTICE
 maintainer:      alasdair.hill@iohk.io
 author:          Alasdair Hill
 stability:       experimental
@@ -30,9 +28,10 @@ flag defer-plugin-errors
 library
   exposed-modules:
     Contract.Escrow
-    Spec.Escrow
+    Contract.OffChain
+    -- Spec.Escrow
   other-modules:
-    Spec.Endpoints
+    -- Spec.Endpoints
 
 
   hs-source-dirs:     src
@@ -96,6 +95,7 @@ library
     , tasty-hunit
     , tasty-quickcheck
     , text
+    , cooked-validators
 
   if flag(defer-plugin-errors)
     ghc-options: -fplugin-opt PlutusTx.Plugin:defer-errors
@@ -181,3 +181,4 @@ test-suite escrow-test
     , tasty-quickcheck
     , text
     , time
+    , cooked-validators
