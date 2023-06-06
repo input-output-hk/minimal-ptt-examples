@@ -60,11 +60,13 @@ tests =
     "EscrowSpec"
       [ testCase "Simple example succeeds" usageExample,
         testCase "Can redeem"
-                $ testSucceedsFrom def testInit redeemTrace,
+                $ testSucceedsFrom def testInit redeemTrace ,
         testCase "can redeem even if more money than required has been paid in"
                 $ testSucceedsFrom def testInit redeem2Trace,
         testCase "Can refund"
-                $ testSucceedsFrom def testInit refundTrace]
+                $ testSucceedsFrom def testInit refundTrace,
+        testCase "Cant pay twice"
+                $ testSucceedsFrom def testInit cantPayTwice ]
 
 usageExample :: Assertion
 usageExample = testSucceedsFrom def testInit $ do
@@ -103,6 +105,54 @@ refundTrace = do
     deadlineSlot <- getEnclosingSlot deadline
     void $ awaitSlot $ deadlineSlot + 1
     refund val (wallet 1) params
+
+
+payWallet ::
+    MonadBlockChain m
+    => Wallet
+--     -> Pl.TxOutRef
+    -> Wallet
+    -> Value
+    -> m L.CardanoTx
+payWallet submitter target v = do
+        validateTxSkel $
+                txSkelTemplate
+                  { txSkelOpts = def {txOptEnsureMinAda = True},
+                    txSkelSigners = [submitter],
+                    -- txSkelIns = [map (SpendsScript inst Redeem . fst) unspentOutputs],
+                    -- txSkelIns = Map.singleton (fst (head outputs)) $ TxSkelRedeemerForScript Redeem,
+                    txSkelOuts = [paysPK (walletPKHash target) v]
+                    -- txSkelValidityRange = validityInterval
+                  }
+
+
+escrowParams' :: POSIXTime -> EscrowParams d
+escrowParams' startTime =
+  EscrowParams
+    { escrowDeadline = startTime + 40000
+    , escrowTargets  =
+        [ payToPaymentPubKeyTarget (L.PaymentPubKeyHash (walletPKHash $ wallet 1)) (Ada.adaValueOf 100)
+        ]
+    }
+
+cantPayTwice :: MonadBlockChain m => m L.CardanoTx
+cantPayTwice = do
+    (_ , t0) <- currentTime
+    let
+        val = (typedValidator (escrowParams (TimeSlot.scSlotZeroTime def)))
+        params = (escrowParams' (TimeSlot.scSlotZeroTime def))
+        deadline = t0 + 60_000
+    pay val (wallet 1) params (Ada.adaValueOf 100)
+    deadlineSlot <- getEnclosingSlot deadline
+    -- redeem val (wallet 1) params
+    void $ awaitSlot $ deadlineSlot + 1
+    refund val (wallet 1) params
+    payWallet (wallet 1) (wallet 2) (Ada.adaValueOf 920)
+    -- refund val (wallet 1) params
+    -- payWallet (wallet 2) (wallet 1) (Ada.adaValueOf 100)
+    -- payWallet (wallet 1) (wallet 2) (Ada.adaValueOf 1020)
+    -- pay val (wallet 1) params (Ada.lovelaceValueOf 500_000_000)
+
 
 
 {-

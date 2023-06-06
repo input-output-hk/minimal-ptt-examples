@@ -223,7 +223,6 @@ validate EscrowParams{escrowDeadline, escrowTargets} contributor action ScriptCo
         Redeem ->
             traceIfFalse "escrowDeadline-after" (escrowDeadline `after` txInfoValidRange scriptContextTxInfo)
             && traceIfFalse "meetsTarget" (all (meetsTarget scriptContextTxInfo) escrowTargets)
-            -- traceIfFalse "meetsTarget" (all (meetsTarget scriptContextTxInfo) escrowTargets)
         Refund ->
             traceIfFalse "escrowDeadline-before" ((escrowDeadline - 1) `before` txInfoValidRange scriptContextTxInfo)
             && traceIfFalse "txSignedBy" (scriptContextTxInfo `txSignedBy` contributor)
