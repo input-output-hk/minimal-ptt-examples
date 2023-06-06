@@ -20,30 +20,6 @@
 {-# OPTIONS_GHC -g -fplugin-opt PlutusTx.Plugin:coverage-all #-}
 -- | A general-purpose escrow contract in Plutus
 module Contract.OffChain where
-
-{-
-import Control.Lens (review, view) -- makeClassyPrisms , view)
-import Control.Monad
-import Cooked.MockChain
--- import Cooked.Tx.Constraints
-import qualified Ledger as Pl
--- import qualified Ledger.Ada as Pl
-
-import qualified Ledger.Typed.Scripts as Pl
-import Plutus.Script.Utils.Value (Value, geq, lt)
-
--- import Ledger.Value (Value, lt) -- geq , lt)
-import Prelude
-import qualified Ledger as L
-import Plutus.Contract qualified as PC
-import Ledger.Tx qualified as Tx
-import PlutusTx qualified
--- import Plutus.Script.Utils.V1.Scripts (datumHash)
-import Data.Default
-import Plutus.V1.Ledger.Scripts (Datum (Datum)) -- DatumHash, ValidatorHash)
-import Cooked.Wallet
--}
-
 import Cooked
 
 import Control.Monad
@@ -68,27 +44,7 @@ import Cardano.Node.Emulator.Params
 
 
 import Control.Lens (review, view, has, only) -- makeClassyPrisms , view)
-
-
--- import qualified Ledger.Typed.Scripts as Pl
--- import Control.Lens (review, view) -- makeClassyPrisms , view)
--- import Plutus.Contract qualified as PC
-
 import Contract.Escrow
-
-{-
-escrowContract :: MonadBlockChain m => Pl.TypedValidator Escrow -> EscrowParams Datum -> m ()
-escrowContract v escrow =
-    let inst = typedValidator escrow
-        payAndRefund = endpoint @"pay-escrow" $ \vl -> do
-            _ <- pay inst escrow vl
-            _ <- awaitTime $ escrowDeadline escrow
-            refund inst escrow
-    in selectList
-        [ void payAndRefund
-        , void $ redeemEp escrow
-        ]
--}
 
 -- Issue 1
 {-
@@ -142,22 +98,19 @@ redeem inst submitter escrow = do
     outputs <-
       runUtxoSearch $
         utxosAtSearch (Pl.validatorAddress inst)
-    -- unspentOutputs <- scriptUtxosSuchThat inst (\_ _ -> True)
-    current <- currentTime -- FIX
+    current <- currentTime
     let
       uouts = map snd outputs
       deadline = escrowDeadline escrow
     validityInterval <- slotRangeBefore (deadline - 1)
-    if (snd current) >= deadline -- FIX
+    if (snd current) >= deadline
     then error "Deadline Passed"
---    else if foldMap (view Tx.ciTxOutValue) uouts `lt` targetTotal escrow
     else if foldMap txOutValue uouts `lt` targetTotal escrow
       then error "Not enough funds at address"
       else do
         tx <- (validateTxSkel $
                 txSkelTemplate
                   { txSkelOpts = def {txOptEnsureMinAda = True},
-                    -- txSkelOpts = def {txOptEnsureMinAda = True, txOptEmulatorParamsModification = Just $ EmulatorParamsModification increaseTransactionLimits},
                     txSkelSigners = [submitter],
                     txSkelIns = Map.fromList (map (\ (or , _) -> ( or , TxSkelRedeemerForScript Redeem)) outputs),
                     txSkelOuts = map (\case
@@ -172,21 +125,6 @@ redeem inst submitter escrow = do
 newtype RefundSuccess = RefundSuccess L.TxId
     deriving (Eq, Show)
 
-
-
-{-
-refundFilter :: L.PaymentPubKeyHash -> [(TxOutRef, TxOut)] -> [(TxOutRef, TxOut)]
-refundFilter pk sout =
-    let
-      flt (_ , ciTxOut) = (\case
-                            NoOutputDatum	-> False
-                            OutputDatumHash dh -> dh == L.datumHash (Datum (Pl.toBuiltinData pk))
-                            OutputDatum d -> d == (Datum (Pl.toBuiltinData pk))) (txOutDatum ciTxOut)
-        -- either id datumHash (TxOutDatum ciTxOut) == datumHash (Datum (Pl.toBuiltinData pk))
-    in
-      (filter flt sout)
--}
-
 refundFilter :: L.PaymentPubKeyHash -> [(TxOutRef , TxOut)] -> [(TxOutRef , TxOut)]
 refundFilter pk sout =
     let
@@ -194,7 +132,6 @@ refundFilter pk sout =
                             NoOutputDatum	-> False
                             OutputDatumHash dh -> dh == L.datumHash (Datum (Pl.toBuiltinData pk))
                             OutputDatum d -> d == (Datum (Pl.toBuiltinData pk))) (txOutDatum ciTxOut)
-        -- either id datumHash (TxOutDatum ciTxOut) == datumHash (Datum (Pl.toBuiltinData pk))
     in
       (filter flt sout)
 
@@ -220,10 +157,6 @@ refund inst submitter escrow = do
               { txSkelOpts = def {txOptEnsureMinAda = True},
                 txSkelSigners = [submitter],
                 txSkelIns = Map.fromList (map (\ (or , _) -> ( or , TxSkelRedeemerForScript Refund)) uouts),
-                -- txSkelIns = [map (SpendsScript inst Redeem . fst) unspentOutputs],
-                -- txSkelIns = Map.singleton (fst (head outputs)) $ TxSkelRedeemerForScript Redeem,
-                -- txSkelOuts = (map (TxSkelRedeemerForScript inst Refund) uouts)
-                -- ,
                 txSkelValidityRange = validityInterval
               })
     if (snd current) <= escrowDeadline escrow
@@ -232,92 +165,3 @@ refund inst submitter escrow = do
     then error "no scripts to refund"
     else
       return (RefundSuccess (L.getCardanoTxId tx))
-{-
-redeem ::
-    MonadBlockChain m
-    => Pl.TypedValidator Escrow
-    -> EscrowParams Datum
-    -> m RedeemSuccess
-redeem inst escrow = do
-    unspentOutputs <- scriptUtxosSuchThat inst (\_ _ -> True)
-    current <- currentTime
-    let
-      uouts = map snd (map fst unspentOutputs)
-      deadline = L.interval 1 (escrowDeadline escrow)
-    if current >= escrowDeadline escrow
-    then error "Deadline Passed"
---    else if foldMap (view Tx.ciTxOutValue) uouts `lt` targetTotal escrow
-    else if foldMap Tx.decoratedTxOutPlutusValue uouts `lt` targetTotal escrow
-      then error "Not enough funds at address"
-      else do
-        tx <-
-          validateTxSkel $
-              -- txSkelOpts (def {adjustUnbalTx = True}) $
-                  (ValidateIn deadline
-                    : map (SpendsScript inst Redeem . fst) unspentOutputs)
-                      :=>: map (\case
-                                  PaymentPubKeyTarget pk vl -> paysPK (L.unPaymentPubKeyHash pk) vl
-                                  ScriptTarget _ _ _ -> error "can't use script with cooked")
-                                  (escrowTargets escrow)
-        return (RedeemSuccess (L.getCardanoTxId tx))
-
-newtype RefundSuccess = RefundSuccess L.TxId
-    deriving (Eq, Show)
--}
-
-{-
--- | 'refund' with an endpoint.
-refundEp ::
-    forall w s.
-    ( PC.HasEndpoint "refund-escrow" () s
-    )
-    => EscrowParams Datum
-    -> PC.Promise w s EscrowError RefundSuccess
-refundEp escrow = PC.endpoint @"refund-escrow" $ \() -> refund (typedValidator escrow) escrow
--}
-
-{-
-refundFilter :: L.PaymentPubKeyHash -> [SpendableOut] -> [SpendableOut]
-refundFilter pk sout =
-    let
-      flt (_ , ciTxOut) = either id datumHash (Tx._ciTxOutDatum ciTxOut) == datumHash (Datum (PlutusTx.toBuiltinData pk))
-    in
-      (filter flt sout)
-
-refund ::
-    MonadBlockChain m
-    => Pl.TypedValidator Escrow
-    -> EscrowParams Datum
-    -> m RefundSuccess
-refund inst escrow = do
-    pk <- ownPaymentPubKeyHash
-    unspentOutputs <- scriptUtxosSuchThat inst (\_ _ -> True)
-    current <- currentTime
-    let
-      uouts = refundFilter (L.PaymentPubKeyHash pk) (map fst unspentOutputs)
-    tx <- validateTxSkel $
-              -- txSkelOpts (def {adjustUnbalTx = True}) $
-                  (After (escrowDeadline escrow)
-                    : map (SpendsScript inst Refund) uouts)
-    if current <= escrowDeadline escrow
-    then error "refund before deadline"
-    else if (map (SpendsScript inst Refund) uouts) == []
-    then error "no scripts to refund"
-    else
-      return (RefundSuccess (L.getCardanoTxId tx))
--}
-
--- Todo define payRedeemRefund
-
-{-
-txRefund :: MonadBlockChain m => m ()
-txRefund = do
-  funder <- ownPaymentPubKeyHash
-  utxos <-
-    scriptUtxosSuchThat Cf.crowdfundingValidator (\d _ -> Cf.getFunder d == Just funder)
-  void $
-    validateTxSkel $
-      txSkel $
-        map (SpendsScript Cf.crowdfundingValidator Cf.IndividualRefund . fst) utxos
-          :=>: [paysPK funder (PlutusTx.Prelude.sum $ map (sOutValue . fst) utxos)]
--}
