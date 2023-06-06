@@ -66,7 +66,7 @@ tests =
         testCase "Can refund"
                 $ testSucceedsFrom def testInit refundTrace,
         testCase "Cant pay twice"
-                $ testSucceedsFrom def testInit cantPayTwice ]
+                $ testSucceedsFrom def testInit cantPayTwice  ]
 
 usageExample :: Assertion
 usageExample = testSucceedsFrom def testInit $ do
@@ -106,7 +106,6 @@ refundTrace = do
     void $ awaitSlot $ deadlineSlot + 1
     refund val (wallet 1) params
 
-
 payWallet ::
     MonadBlockChain m
     => Wallet
@@ -139,14 +138,14 @@ cantPayTwice :: MonadBlockChain m => m L.CardanoTx
 cantPayTwice = do
     (_ , t0) <- currentTime
     let
-        val = (typedValidator (escrowParams (TimeSlot.scSlotZeroTime def)))
+        val = (typedValidator (escrowParams' (TimeSlot.scSlotZeroTime def)))
         params = (escrowParams' (TimeSlot.scSlotZeroTime def))
         deadline = t0 + 60_000
     pay val (wallet 1) params (Ada.adaValueOf 100)
     deadlineSlot <- getEnclosingSlot deadline
-    -- redeem val (wallet 1) params
+    redeem val (wallet 1) params
     void $ awaitSlot $ deadlineSlot + 1
-    refund val (wallet 1) params
+    -- refund val (wallet 1) params
     payWallet (wallet 1) (wallet 2) (Ada.adaValueOf 920)
     -- refund val (wallet 1) params
     -- payWallet (wallet 2) (wallet 1) (Ada.adaValueOf 100)

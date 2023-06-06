@@ -157,10 +157,9 @@ redeem inst submitter escrow = do
         tx <- (validateTxSkel $
                 txSkelTemplate
                   { txSkelOpts = def {txOptEnsureMinAda = True},
+                    -- txSkelOpts = def {txOptEnsureMinAda = True, txOptEmulatorParamsModification = Just $ EmulatorParamsModification increaseTransactionLimits},
                     txSkelSigners = [submitter],
-                    -- txSkelIns = [map (SpendsScript inst Redeem . fst) unspentOutputs],
                     txSkelIns = Map.fromList (map (\ (or , _) -> ( or , TxSkelRedeemerForScript Redeem)) outputs),
-                    -- txSkelIns = Map.singleton (fst (head outputs)) $ TxSkelRedeemerForScript Redeem,
                     txSkelOuts = map (\case
                                         PaymentPubKeyTarget pk vl -> paysPK (L.unPaymentPubKeyHash pk) vl
                                         ScriptTarget _ _ _ -> error "can't use script with cooked")

@@ -80,6 +80,9 @@ import Prelude (Semigroup (..), foldMap)
 import Prelude qualified as Haskell
 import Cooked
 
+import qualified Plutus.V1.Ledger.Interval as IntervalV1
+
+
 type EscrowSchema =
         Endpoint "pay-escrow" Value
         .\/ Endpoint "redeem-escrow" ()
@@ -221,7 +224,8 @@ validate :: EscrowParams DatumHash -> L.PubKeyHash -> Action -> ScriptContext ->
 validate EscrowParams{escrowDeadline, escrowTargets} contributor action ScriptContext{scriptContextTxInfo} =
     case action of
         Redeem ->
-            traceIfFalse "escrowDeadline-after" (escrowDeadline `after` txInfoValidRange scriptContextTxInfo)
+            -- traceIfFalse "escrowDeadline-after" (escrowDeadline `after` txInfoValidRange scriptContextTxInfo)
+            traceIfFalse "escrowDeadline-after" (IntervalV1.to escrowDeadline `IntervalV1.contains` txInfoValidRange scriptContextTxInfo)
             && traceIfFalse "meetsTarget" (all (meetsTarget scriptContextTxInfo) escrowTargets)
             -- traceIfFalse "meetsTarget" (all (meetsTarget scriptContextTxInfo) escrowTargets)
         Refund ->
