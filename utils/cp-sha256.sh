@@ -19,5 +19,4 @@ repo="${2:?'Repository not given'}"
 ref="${3:?'Reference not given'}"
 
 nix-prefetch-git --quiet https://github.com/"$user"/"$repo" "$ref" \
-	| jq -r '.sha256' \
-	| xclip
+	| jq -r '.sha256'

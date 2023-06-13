@@ -8,8 +8,6 @@
 
 module Spec.EscrowSpec where
 
-
-
 import Contract.Escrow
 import Contract.OffChain
 
@@ -40,6 +38,16 @@ import Test.Tasty.Runners (TestTree(TestGroup))
 import Cardano.Node.Emulator.TimeSlot qualified as TimeSlot
 
 
+
+import Test.QuickCheck
+import Test.QuickCheck.ContractModel hiding (awaitSlot)
+import Test.QuickCheck.ContractModel.Cooked
+import Test.QuickCheck.ContractModel.ThreatModel
+import Test.QuickCheck.ContractModel.ThreatModel.DoubleSatisfaction
+import Test.Tasty
+import Test.Tasty.QuickCheck
+
+
 -- | initial distribution s.t. everyone owns five bananas
 testInit :: InitialDistribution
 testInit = initialDistribution [(i, [Ada.lovelaceValueOf 20_000_000]) | i <- knownWallets]
@@ -65,8 +73,10 @@ tests =
                 $ testSucceedsFrom def testInit redeem2Trace,
         testCase "Can refund"
                 $ testSucceedsFrom def testInit refundTrace,
-        testCase "Cant pay twice"
-                $ testSucceedsFrom def testInit cantPayTwice  ]
+        testCase "Wallet receives refund"
+                $ testSucceedsFrom def testInit refundCheck,
+        testCase "Wallet receives redeem"
+                $ testSucceedsFrom def testInit redeemCheck]
 
 usageExample :: Assertion
 usageExample = testSucceedsFrom def testInit $ do
@@ -118,10 +128,7 @@ payWallet submitter target v = do
                 txSkelTemplate
                   { txSkelOpts = def {txOptEnsureMinAda = True},
                     txSkelSigners = [submitter],
-                    -- txSkelIns = [map (SpendsScript inst Redeem . fst) unspentOutputs],
-                    -- txSkelIns = Map.singleton (fst (head outputs)) $ TxSkelRedeemerForScript Redeem,
                     txSkelOuts = [paysPK (walletPKHash target) v]
-                    -- txSkelValidityRange = validityInterval
                   }
 
 
@@ -134,8 +141,21 @@ escrowParams' startTime =
         ]
     }
 
-cantPayTwice :: MonadBlockChain m => m L.CardanoTx
-cantPayTwice = do
+refundCheck :: MonadBlockChain m => m L.CardanoTx
+refundCheck = do
+    (_ , t0) <- currentTime
+    let
+        val = (typedValidator (escrowParams' (TimeSlot.scSlotZeroTime def)))
+        params = (escrowParams' (TimeSlot.scSlotZeroTime def))
+        deadline = t0 + 60_000
+    pay val (wallet 1) params (Ada.adaValueOf 100)
+    deadlineSlot <- getEnclosingSlot deadline
+    void $ awaitSlot $ deadlineSlot + 1
+    refund val (wallet 1) params
+    payWallet (wallet 1) (wallet 2) (Ada.adaValueOf 920)
+
+redeemCheck :: MonadBlockChain m => m L.CardanoTx
+redeemCheck = do
     (_ , t0) <- currentTime
     let
         val = (typedValidator (escrowParams' (TimeSlot.scSlotZeroTime def)))
@@ -145,139 +165,4 @@ cantPayTwice = do
     deadlineSlot <- getEnclosingSlot deadline
     redeem val (wallet 1) params
     void $ awaitSlot $ deadlineSlot + 1
-    -- refund val (wallet 1) params
     payWallet (wallet 1) (wallet 2) (Ada.adaValueOf 920)
-    -- refund val (wallet 1) params
-    -- payWallet (wallet 2) (wallet 1) (Ada.adaValueOf 100)
-    -- payWallet (wallet 1) (wallet 2) (Ada.adaValueOf 1020)
-    -- pay val (wallet 1) params (Ada.lovelaceValueOf 500_000_000)
-
-
-
-{-
-> import Cooked
-> import qualified Plutus.Script.Utils.Ada as Pl
-> printCooked . runMockChain . validateTxSkel $
-      txSkelTemplate
-        { txSkelOuts = [paysPK (walletPKHash $ wallet 2) (Pl.adaValueOf 10)],
-          txSkelSigners = [wallet 1]
-        }
-[...]
-- UTxO state:
-  • pubkey #a2c20c7 (wallet 1)
-    - Lovelace: 89_828_471
-    - (×9) Lovelace: 100_000_000
-  • pubkey #80a4f45 (wallet 2)
-    - Lovelace: 10_000_000
-    - (×10) Lovelace: 100_000_000
-  • pubkey #2e0ad60 (wallet 3)
-    - (×10) Lovelace: 100_000_000
-  • pubkey #557d23c (wallet 4)
-    - (×10) Lovelace: 100_000_000
-  • pubkey #bf342dd (wallet 5)
-    - (×10) Lovelace: 100_000_000
-  • pubkey #97add5c (wallet 6)
-    - (×10) Lovelace: 100_000_000
-  • pubkey #c605888 (wallet 7)
-    - (×10) Lovelace: 100_000_000
-  • pubkey #8952ed1 (wallet 8)
-    - (×10) Lovelace: 100_000_000
-  • pubkey #dfe12ac (wallet 9)
-    - (×10) Lovelace: 100_000_000
-  • pubkey #a96a668 (wallet 10)
-    - (×10) Lovelace: 100_000_000
--}
-
-
-
-{--- typedValidator
-
-redeem2Trace :: MonadMockChain m => m RedeemSuccess
-redeem2Trace = do
-    let
-        val = (typedValidator (escrowParams (TimeSlot.scSlotZeroTime def)))
-        params = (escrowParams (TimeSlot.scSlotZeroTime def))
-    pay val params (Ada.adaValueOf 20) `as` wallet 1
-    pay val params (Ada.adaValueOf 10) `as` wallet 2
-    pay val params (Ada.adaValueOf 10) `as` wallet 3
-    redeem val params `as` wallet 1
-
-{-
-refundTrace :: MonadMockChain m => m RefundSuccess
-refundTrace = do
-    t0 <- currentTime
-    let
-        val = (typedValidator (escrowParams (TimeSlot.scSlotZeroTime def)))
-        params = (escrowParams (TimeSlot.scSlotZeroTime def))
-        deadline = t0 + 60_000
-    pay val params (Ada.adaValueOf 20) `as` wallet 1
-    awaitTime deadline
-    refund val params `as` wallet 1
--}
-
--- | helper function to compute what the given wallet owns in the
--- given state
-holdingInState :: UtxoState -> Wallet -> L.Value
-holdingInState (UtxoState m) w
-  | Just vs <- M.lookup (walletAddress w) m = utxoValueSetTotal vs
-  | otherwise = mempty
-
-holdingInState2 :: InitialDistribution -> Wallet -> L.Value
-holdingInState2 d w = mconcat (valuesForWallet d w)
-
--- Terrible way to do this but just using this to compare values assuming some fee has been applied
-naiveValueComparison :: L.Value -> L.Value -> Bool
-naiveValueComparison v1 v2 = if (Ada.fromValue v1) >= (Ada.fromValue v2)
-                        && (floor $ (* 0.999) $ fromIntegral (Ada.getLovelace (Ada.fromValue v1)))
-                                <= (Ada.getLovelace (Ada.fromValue v2))
-                                        then True else False
-
-tests :: TestTree
-tests =
-    testGroup
-        "EscrowSpec"
-            [ testCase "Simple example succeeds" usageExample,
-              testCase "Can redeem"
-                $ testSucceeds
-                    (allowBigTransactions redeemTrace),
-              testCase "Check wallets and can redeem"
-                $ testSucceedsFrom'
-                    ( \_ s ->
-                       -- testBool $ (Ada.fromValue ((holdingInState2 testInit (wallet 2)) <> (Ada.adaValueOf 10))
-                         --           == Ada.fromValue (holdingInState s (wallet 2)))
-                        -- testBool $ (Ada.fromValue ((holdingInState2 testInit (wallet 3)))
-                         --           == Ada.fromValue (holdingInState s (wallet 3)))
-                        testBool $ naiveValueComparison
-                                        ((holdingInState2 testInit (wallet 2))
-                                                <> (Ada.adaValueOf 10))
-                                        (holdingInState s (wallet 2))
-                        .&&. (testBool $ naiveValueComparison
-                                           ((holdingInState2 testInit (wallet 1))
-                                             <> (Ada.adaValueOf (-10)))
-                                           (holdingInState s (wallet 1)))
-                        -- .&&. (testBool $ naiveValueComparison
-                        --                   (holdingInState2 testInit (wallet 3))
-                        --                   (holdingInState s (wallet 3)))
-
-                    )
-                    testInit
-                    (allowBigTransactions redeemTrace),
-              testCase "can redeem even if more money than required has been paid in"
-                $ testSucceedsFrom'
-                    ( \_ s ->
-                        testBool $ naiveValueComparison
-                                           ((holdingInState2 testInit (wallet 2))
-                                             <> (Ada.adaValueOf 10))
-                                           (holdingInState s (wallet 2))
-                        .&&. (testBool $ naiveValueComparison
-                                           ((holdingInState2 testInit (wallet 3))
-                                             <> (Ada.adaValueOf (-10)))
-                                           (holdingInState s (wallet 3)))
-                    )
-                    testInit
-                    (allowBigTransactions redeem2Trace)-- ,
-              -- testCase "Can refund"
-              --   $ testSucceeds
-              --      (allowBigTransactions refundTrace)
-            ]
--}
