@@ -1,58 +1,174 @@
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE DeriveGeneric       #-}
+{-# LANGUAGE FlexibleInstances   #-}
+{-# LANGUAGE GADTs               #-}
+{-# LANGUAGE ImportQualifiedPost #-}
+{-# LANGUAGE StandaloneDeriving  #-}
+{-# LANGUAGE TemplateHaskell     #-}
+{-# LANGUAGE TypeApplications    #-}
+{-# LANGUAGE TypeFamilies        #-}
 {-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE DataKinds        #-}
-{-# LANGUAGE ImportQualifiedPost #-}
-
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+{-# OPTIONS_GHC -Wno-deprecations #-}
 module Spec.EscrowSpec where
 
-import Contract.Escrow
-import Contract.OffChain
+-- Imports Copied From Auction Example
+import Control.Lens hiding (elements)
+import Control.Monad.Reader
 
-import Cooked
-
-import Control.Monad
-import Cooked
 import Data.Default
-import qualified Data.Map as Map
-import qualified Ledger.Tx as Tx
-import qualified Plutus.Script.Utils.Ada as Ada
-import qualified Plutus.Script.Utils.Typed as Pl
-import Plutus.Script.Utils.Value
-import Plutus.V2.Ledger.Api
-import qualified Ledger as L
-import qualified PlutusTx.Numeric as Pl
-import PlutusTx.Numeric
-import Prelude hiding ((-), (+))
-import qualified Plutus.V2.Ledger.Api as Pl
-import Ledger.Tx.CardanoAPI qualified as CardanoAPI
+import Data.Fixed (Micro)
+import Data.Maybe
 
-import Cooked.Wallet
-import Test.Tasty
--- import Test.Tasty.ExpectedFailure
-import Test.Tasty.HUnit
-import Test.Tasty.Runners (TestTree(TestGroup))
+import GHC.Generics hiding (to)
 
-import Cardano.Node.Emulator.TimeSlot qualified as TimeSlot
+-- import Cardano.Api
+import Cardano.Node.Emulator.TimeSlot qualified as Plutus
 
+import Ledger.Tx.CardanoAPI qualified as Plutus
 
+import Plutus.Script.Utils.Ada qualified as Ada
+import Plutus.V1.Ledger.Value qualified as Plutus hiding (adaSymbol, adaToken)
 
-import Test.QuickCheck
-import Test.QuickCheck.ContractModel hiding (awaitSlot)
+-- import Test.QuickCheck
+import Test.QuickCheck qualified as QC
+import Test.QuickCheck.ContractModel hiding (inv)
 import Test.QuickCheck.ContractModel.Cooked
 import Test.QuickCheck.ContractModel.ThreatModel
 import Test.QuickCheck.ContractModel.ThreatModel.DoubleSatisfaction
 import Test.Tasty
-import Test.Tasty.QuickCheck
+import Test.Tasty.QuickCheck hiding (scale)
 
+import Cooked.Currencies
+import Cooked.Wallet
+
+-- Imports Added by Me
+import Contract.OffChain
+import Contract.Escrow
+import qualified Ledger as L
+import Data.Map (Map)
+import qualified Data.Map as Map
+import Cardano.Node.Emulator.TimeSlot qualified as TimeSlot
+import Cooked hiding (currentSlot)
+import Test.Tasty.HUnit
+import Cardano.Api hiding (Value)
+import Plutus.V1.Ledger.Value hiding (adaSymbol, adaToken)
+import Data.Foldable
+
+inv = scale @Integer @Value (-1)
 
 -- | initial distribution s.t. everyone owns five bananas
 testInit :: InitialDistribution
 testInit = initialDistribution [(i, [Ada.lovelaceValueOf 20_000_000]) | i <- knownWallets]
 
-escrowParams :: POSIXTime -> EscrowParams d
+data EscrowModel = EscrowModel { _contributions :: Map Int Value
+                               , _refundSlot    :: L.Slot
+                               , _targets       :: Map Wallet Value
+                               } deriving (Eq, Show, Generic)
+
+makeLenses 'EscrowModel
+
+modelParams :: EscrowParams d
+modelParams = escrowParams $ TimeSlot.scSlotZeroTime def
+
+instance ContractModel EscrowModel where
+  data Action EscrowModel = Pay Int Integer
+                          | Redeem Int
+                          | Refund Int
+                          | BadRefund Int Int
+                          deriving (Eq, Show, Generic)
+
+  initialState = EscrowModel { _contributions = Map.empty
+                             , _refundSlot    = TimeSlot.posixTimeToEnclosingSlot def
+                                              . escrowDeadline
+                                              $ modelParams
+                             -- TODO: This model is somewhat limited because we focus on one
+                             -- set of parameters only. The solution is to use the sealed bid
+                             -- auction trick to generate parameters dynamically that we can
+                             -- use later on.
+                             , _targets       = Map.fromList [ (wallet 1, Ada.adaValueOf 10)
+                                                             , (wallet 2, Ada.adaValueOf 20)
+                                                             ]
+                             }
+
+  nextState a = void $ case a of
+    Pay w v -> do
+      withdraw (walletAddr $ wallet w) (Ada.adaValueOf $ fromInteger v)
+      contributions %= Map.insertWith (<>) w (Ada.adaValueOf $ fromInteger v)
+      wait 1
+    Redeem w -> do
+      targets <- viewContractState targets
+      contribs <- viewContractState contributions
+      sequence_ [ deposit (walletAddr w) v | (w, v) <- Map.toList targets ]
+      let leftoverValue = fold contribs <> inv (fold targets)
+      deposit (walletAddr $ wallet w) leftoverValue
+      contributions .= Map.empty
+      wait 1
+    Refund w -> do
+      v <- viewContractState $ contributions . at w . to fold
+      contributions %= Map.delete w
+      deposit (walletAddr $ wallet w) v
+      wait 1
+    -- BadRefund _ _ -> do
+      -- wait 2
+
+  precondition s a = case a of
+    Redeem _ -> (s ^. contractState . contributions . to fold) `geq` (s ^. contractState . targets . to fold)
+             && (s ^. currentSlot < toSlotNo (s ^. contractState . refundSlot - 1))
+    Refund w -> s ^. currentSlot >= toSlotNo (s ^. contractState . refundSlot)
+             && Nothing /= (s ^. contractState . contributions . at w)
+    Pay _ v -> s ^. currentSlot < toSlotNo (s ^. contractState . refundSlot - 1)
+            && Ada.adaValueOf (fromInteger v) `geq` Ada.toValue L.minAdaTxOutEstimated
+    -- BadRefund w w' -> s ^. currentSlot < s ^. contractState . refundSlot - 2  -- why -2?
+       --             || w /= w'
+
+  arbitraryAction s = frequency $ [ (prefer beforeRefund,  Pay <$> genWallet <*> choose @Integer (10, 30))
+                                  , (prefer beforeRefund,  Redeem <$> genWallet) ] ++
+          --                         , (prefer afterRefund,   BadRefund <$> QC.elements testWallets <*> QC.elements testWallets) ] ++
+                                  [ (prefer afterRefund,   Refund <$> QC.elements (s ^. contractState . contributions . to Map.keys))
+                                  | Prelude.not . null $ s ^. contractState . contributions . to Map.keys ]
+                  where
+                    slot = s ^. currentSlot
+                    beforeRefund = slot < toSlotNo (s ^. contractState . refundSlot)
+                    afterRefund = Prelude.not beforeRefund
+                    prefer b = if b then 10 else 1
+                    genWallet   = QC.choose (1, length knownWallets)
+
+
+-- | Tell us how to run an `AuctionModel` in the `SuperMockChain` - an
+-- extension of the Cooked Validator `MockChain` monad adapted to
+-- work with `QuickCheck.ContractModel`.
+instance RunModel EscrowModel (SuperMockChain ()) where
+  -- `perform` runs API actions by calling the off-chain code of
+  -- the contract in the `SuperMockChain` monad.
+  perform _ (Pay w v) _ = void $ do
+    pay (typedValidator modelParams) (wallet w) modelParams (Ada.adaValueOf $ fromInteger v)
+  perform _ (Redeem w) _ = void $ do
+    redeem (typedValidator modelParams) (wallet w) modelParams
+  perform _ (Refund w) _ = void $ do
+    refund (typedValidator modelParams) (wallet w) modelParams
+
+
+  -- `monitoring` gives us a way to apply `QuickCheck` monitoring
+  -- functions like `classify` and `tabulate` to our property to
+  -- get a better idea of the test case distribution. In this case
+  -- we just track how many tests actually contain a `Hammer` action
+  -- indicating that an auction has been finished.
+{-  monitoring _ (Redeem _) = classify True "Contains Redeem"
+  monitoring (_,_) (BadRefund w w') = tabulate "Bad refund attempts" [if w==w' then "early refund" else "steal refund"]
+  monitoring (s,s') _ = classify (redeemable s' && Prelude.not (redeemable s)) "Redeemable"
+    where redeemable s = precondition s (Redeem undefined) -}
+
+-- | A standard property that tests that the balance changes
+-- predicted by the `ContractModel` instance match the balance changes produced
+-- by the `RunModel` instance - up to minimum ada requirements on UTxOs.
+prop_Escrow :: Actions EscrowModel -> Property
+prop_Escrow = propRunActions testInit () balanceChangePredicate
+
+escrowParams :: L.POSIXTime -> EscrowParams d
 escrowParams startTime =
   EscrowParams
     { escrowDeadline = startTime + 40000
@@ -76,7 +192,8 @@ tests =
         testCase "Wallet receives refund"
                 $ testSucceedsFrom def testInit refundCheck,
         testCase "Wallet receives redeem"
-                $ testSucceedsFrom def testInit redeemCheck]
+                $ testSucceedsFrom def testInit redeemCheck] -- ,
+        -- testProperty "prop_Escrow" prop_Escrow]
 
 usageExample :: Assertion
 usageExample = testSucceedsFrom def testInit $ do
@@ -113,7 +230,7 @@ refundTrace = do
         deadline = t0 + 60_000
     pay val (wallet 1) params (Ada.adaValueOf 20)
     deadlineSlot <- getEnclosingSlot deadline
-    void $ awaitSlot $ deadlineSlot + 1
+    void $ Cooked.awaitSlot $ deadlineSlot + 1
     refund val (wallet 1) params
 
 payWallet ::
@@ -132,7 +249,7 @@ payWallet submitter target v = do
                   }
 
 
-escrowParams' :: POSIXTime -> EscrowParams d
+escrowParams' :: L.POSIXTime -> EscrowParams d
 escrowParams' startTime =
   EscrowParams
     { escrowDeadline = startTime + 40000
@@ -150,7 +267,7 @@ refundCheck = do
         deadline = t0 + 60_000
     pay val (wallet 1) params (Ada.adaValueOf 100)
     deadlineSlot <- getEnclosingSlot deadline
-    void $ awaitSlot $ deadlineSlot + 1
+    void $ Cooked.awaitSlot $ deadlineSlot + 1
     refund val (wallet 1) params
     payWallet (wallet 1) (wallet 2) (Ada.adaValueOf 920)
 
@@ -164,5 +281,5 @@ redeemCheck = do
     pay val (wallet 1) params (Ada.adaValueOf 100)
     deadlineSlot <- getEnclosingSlot deadline
     redeem val (wallet 1) params
-    void $ awaitSlot $ deadlineSlot + 1
+    void $ Cooked.awaitSlot $ deadlineSlot + 1
     payWallet (wallet 1) (wallet 2) (Ada.adaValueOf 920)
