@@ -54,19 +54,25 @@ import qualified Data.Map as Map
 import Cardano.Node.Emulator.TimeSlot qualified as TimeSlot
 import Cooked hiding (currentSlot)
 import Test.Tasty.HUnit
-import Cardano.Api hiding (Value)
+import Cardano.Api qualified as Api
 import Plutus.V1.Ledger.Value hiding (adaSymbol, adaToken)
 import Data.Foldable
 
-inv = scale @Integer @Value (-1)
+import Ledger.CardanoWallet
+import Test.QuickCheck.StateModel.Variables
+-- import PlutusTx.Prelude qualified as Pre
+-- deriving instance Generic Builtin.BuiltinByteString
+import Test.QuickCheck.StateModel.Variables
+
+import PlutusTx.Builtins.Internal qualified as Builtin
 
 -- | initial distribution s.t. everyone owns five bananas
 testInit :: InitialDistribution
 testInit = initialDistribution [(i, [Ada.lovelaceValueOf 20_000_000]) | i <- knownWallets]
 
-data EscrowModel = EscrowModel { _contributions :: Map Int Value
+data EscrowModel = EscrowModel { _contributions :: Map Int Integer
                                , _refundSlot    :: L.Slot
-                               , _targets       :: Map Wallet Value
+                               , _targets       :: Map Int Integer
                                } deriving (Eq, Show, Generic)
 
 makeLenses 'EscrowModel
@@ -81,6 +87,7 @@ instance ContractModel EscrowModel where
                           | BadRefund Int Int
                           deriving (Eq, Show, Generic)
 
+
   initialState = EscrowModel { _contributions = Map.empty
                              , _refundSlot    = TimeSlot.posixTimeToEnclosingSlot def
                                               . escrowDeadline
@@ -89,34 +96,34 @@ instance ContractModel EscrowModel where
                              -- set of parameters only. The solution is to use the sealed bid
                              -- auction trick to generate parameters dynamically that we can
                              -- use later on.
-                             , _targets       = Map.fromList [ (wallet 1, Ada.adaValueOf 10)
-                                                             , (wallet 2, Ada.adaValueOf 20)
+                             , _targets       = Map.fromList [ (1, 10)
+                                                             , (2, 20)
                                                              ]
                              }
 
   nextState a = void $ case a of
     Pay w v -> do
       withdraw (walletAddr $ wallet w) (Ada.adaValueOf $ fromInteger v)
-      contributions %= Map.insertWith (<>) w (Ada.adaValueOf $ fromInteger v)
+      contributions %= Map.insertWith (+) w v
       wait 1
     Redeem w -> do
       targets <- viewContractState targets
       contribs <- viewContractState contributions
-      sequence_ [ deposit (walletAddr w) v | (w, v) <- Map.toList targets ]
-      let leftoverValue = fold contribs <> inv (fold targets)
-      deposit (walletAddr $ wallet w) leftoverValue
+      sequence_ [ deposit (walletAddr (wallet w)) (Ada.adaValueOf $ fromInteger v) | (w, v) <- Map.toList targets ]
+      let leftoverValue = sum contribs - sum targets
+      deposit (walletAddr $ wallet w) (Ada.adaValueOf $ fromInteger leftoverValue)
       contributions .= Map.empty
       wait 1
     Refund w -> do
-      v <- viewContractState $ contributions . at w . to fold
+      v <- viewContractState $ contributions . at w . to sum -- to fold
       contributions %= Map.delete w
-      deposit (walletAddr $ wallet w) v
+      deposit (walletAddr $ wallet w) (Ada.adaValueOf $ fromInteger v)
       wait 1
     -- BadRefund _ _ -> do
       -- wait 2
 
   precondition s a = case a of
-    Redeem _ -> (s ^. contractState . contributions . to fold) `geq` (s ^. contractState . targets . to fold)
+    Redeem _ -> (s ^. contractState . contributions . to sum) >= (s ^. contractState . targets . to sum)
              && (s ^. currentSlot < toSlotNo (s ^. contractState . refundSlot - 1))
     Refund w -> s ^. currentSlot >= toSlotNo (s ^. contractState . refundSlot)
              && Nothing /= (s ^. contractState . contributions . at w)
@@ -192,8 +199,8 @@ tests =
         testCase "Wallet receives refund"
                 $ testSucceedsFrom def testInit refundCheck,
         testCase "Wallet receives redeem"
-                $ testSucceedsFrom def testInit redeemCheck] -- ,
-        -- testProperty "prop_Escrow" prop_Escrow]
+                $ testSucceedsFrom def testInit redeemCheck,
+        testProperty "prop_Escrow" prop_Escrow]
 
 usageExample :: Assertion
 usageExample = testSucceedsFrom def testInit $ do
