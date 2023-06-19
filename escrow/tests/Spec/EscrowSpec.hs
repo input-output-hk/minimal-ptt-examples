@@ -20,51 +20,30 @@ import Control.Lens hiding (elements)
 import Control.Monad.Reader
 
 import Data.Default
-import Data.Fixed (Micro)
-import Data.Maybe
-
 import GHC.Generics hiding (to)
 
--- import Cardano.Api
-import Cardano.Node.Emulator.TimeSlot qualified as Plutus
-
-import Ledger.Tx.CardanoAPI qualified as Plutus
-
 import Plutus.Script.Utils.Ada qualified as Ada
-import Plutus.V1.Ledger.Value qualified as Plutus hiding (adaSymbol, adaToken)
-
 -- import Test.QuickCheck
 import Test.QuickCheck qualified as QC
 import Test.QuickCheck.ContractModel hiding (inv)
 import Test.QuickCheck.ContractModel.Cooked
-import Test.QuickCheck.ContractModel.ThreatModel
-import Test.QuickCheck.ContractModel.ThreatModel.DoubleSatisfaction
+-- import Test.QuickCheck.ContractModel.ThreatModel
+-- import Test.QuickCheck.ContractModel.ThreatModel.DoubleSatisfaction
 import Test.Tasty
 import Test.Tasty.QuickCheck hiding (scale)
 
-import Cooked.Currencies
 import Cooked.Wallet
 
 -- Imports Added by Me
 import Contract.OffChain
-import Contract.Escrow
+import Contract.Escrow hiding (Action (..))
 import qualified Ledger as L
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Cardano.Node.Emulator.TimeSlot qualified as TimeSlot
 import Cooked hiding (currentSlot)
 import Test.Tasty.HUnit
-import Cardano.Api qualified as Api
 import Plutus.V1.Ledger.Value hiding (adaSymbol, adaToken)
-import Data.Foldable
-
-import Ledger.CardanoWallet
-import Test.QuickCheck.StateModel.Variables
--- import PlutusTx.Prelude qualified as Pre
--- deriving instance Generic Builtin.BuiltinByteString
-import Test.QuickCheck.StateModel.Variables
-
-import PlutusTx.Builtins.Internal qualified as Builtin
 
 -- | initial distribution s.t. everyone owns five bananas
 testInit :: InitialDistribution
@@ -84,7 +63,7 @@ instance ContractModel EscrowModel where
   data Action EscrowModel = Pay Int Integer
                           | Redeem Int
                           | Refund Int
-                          | BadRefund Int Int
+                          -- | BadRefund Int Int
                           deriving (Eq, Show, Generic)
 
 
@@ -120,7 +99,7 @@ instance ContractModel EscrowModel where
       deposit (walletAddr $ wallet w) (Ada.adaValueOf $ fromInteger v)
       wait 1
     -- BadRefund _ _ -> do
-      -- wait 2
+    --  wait 2
 
   precondition s a = case a of
     Redeem _ -> (s ^. contractState . contributions . to sum) >= (s ^. contractState . targets . to sum)
@@ -129,12 +108,12 @@ instance ContractModel EscrowModel where
              && Nothing /= (s ^. contractState . contributions . at w)
     Pay _ v -> s ^. currentSlot < toSlotNo (s ^. contractState . refundSlot - 1)
             && Ada.adaValueOf (fromInteger v) `geq` Ada.toValue L.minAdaTxOutEstimated
-    -- BadRefund w w' -> s ^. currentSlot < s ^. contractState . refundSlot - 2  -- why -2?
-       --             || w /= w'
+    -- BadRefund w w' -> s ^. currentSlot < toSlotNo (s ^. contractState . refundSlot - 2)  -- why -2?
+       --              || w /= w'
 
   arbitraryAction s = frequency $ [ (prefer beforeRefund,  Pay <$> genWallet <*> choose @Integer (10, 30))
                                   , (prefer beforeRefund,  Redeem <$> genWallet) ] ++
-          --                         , (prefer afterRefund,   BadRefund <$> QC.elements testWallets <*> QC.elements testWallets) ] ++
+                                  -- , (prefer afterRefund,   BadRefund <$> genWallet <*> genWallet) ] ++
                                   [ (prefer afterRefund,   Refund <$> QC.elements (s ^. contractState . contributions . to Map.keys))
                                   | Prelude.not . null $ s ^. contractState . contributions . to Map.keys ]
                   where
@@ -157,6 +136,8 @@ instance RunModel EscrowModel (SuperMockChain ()) where
     redeem (typedValidator modelParams) (wallet w) modelParams
   perform _ (Refund w) _ = void $ do
     refund (typedValidator modelParams) (wallet w) modelParams
+  -- perform _ (BadRefund w w') _ = void $ do
+   --  badRefund (typedValidator modelParams) (wallet w) (wallet w') modelParams
 
 
   -- `monitoring` gives us a way to apply `QuickCheck` monitoring
