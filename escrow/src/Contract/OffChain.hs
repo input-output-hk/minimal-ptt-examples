@@ -192,10 +192,11 @@ badRefund inst submitter target escrow = do
                 txSkelValidityRange = validityInterval
               })
     return (L.getCardanoTxId tx)
- {-   if (snd current) <= escrowDeadline escrow
+-}
+
+  {-   if (snd current) <= escrowDeadline escrow
     then error "refund before deadline"
     else if uouts == []
     then error "no scripts to refund"
     else
       return (RefundSuccess (L.getCardanoTxId tx)) -}
--}

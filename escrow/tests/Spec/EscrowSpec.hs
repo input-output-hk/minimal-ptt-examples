@@ -99,7 +99,7 @@ instance ContractModel EscrowModel where
       deposit (walletAddr $ wallet w) (Ada.adaValueOf $ fromInteger v)
       wait 1
     -- BadRefund _ _ -> do
-    --  wait 2
+      -- wait 2
 
   precondition s a = case a of
     Redeem _ -> (s ^. contractState . contributions . to sum) >= (s ^. contractState . targets . to sum)
@@ -109,7 +109,7 @@ instance ContractModel EscrowModel where
     Pay _ v -> s ^. currentSlot < toSlotNo (s ^. contractState . refundSlot - 1)
             && Ada.adaValueOf (fromInteger v) `geq` Ada.toValue L.minAdaTxOutEstimated
     -- BadRefund w w' -> s ^. currentSlot < toSlotNo (s ^. contractState . refundSlot - 2)  -- why -2?
-       --              || w /= w'
+       --               || w /= w'
 
   arbitraryAction s = frequency $ [ (prefer beforeRefund,  Pay <$> genWallet <*> choose @Integer (10, 30))
                                   , (prefer beforeRefund,  Redeem <$> genWallet) ] ++
@@ -137,7 +137,7 @@ instance RunModel EscrowModel (SuperMockChain ()) where
   perform _ (Refund w) _ = void $ do
     refund (typedValidator modelParams) (wallet w) modelParams
   -- perform _ (BadRefund w w') _ = void $ do
-   --  badRefund (typedValidator modelParams) (wallet w) (wallet w') modelParams
+    -- testFails $ badRefund (typedValidator modelParams) (wallet w) (wallet w') modelParams
 
 
   -- `monitoring` gives us a way to apply `QuickCheck` monitoring
@@ -145,10 +145,10 @@ instance RunModel EscrowModel (SuperMockChain ()) where
   -- get a better idea of the test case distribution. In this case
   -- we just track how many tests actually contain a `Hammer` action
   -- indicating that an auction has been finished.
-{-  monitoring _ (Redeem _) = classify True "Contains Redeem"
-  monitoring (_,_) (BadRefund w w') = tabulate "Bad refund attempts" [if w==w' then "early refund" else "steal refund"]
-  monitoring (s,s') _ = classify (redeemable s' && Prelude.not (redeemable s)) "Redeemable"
-    where redeemable s = precondition s (Redeem undefined) -}
+  monitoring _ (Redeem _) _ _ = classify True "Contains Redeem"
+  -- monitoring (_,_) (BadRefund w w') = tabulate "Bad refund attempts" [if w==w' then "early refund" else "steal refund"]
+  monitoring (s,s') _ _ _ = classify (redeemable s' && Prelude.not (redeemable s)) "Redeemable"
+    where redeemable s = precondition s (Redeem undefined)
 
 -- | A standard property that tests that the balance changes
 -- predicted by the `ContractModel` instance match the balance changes produced
