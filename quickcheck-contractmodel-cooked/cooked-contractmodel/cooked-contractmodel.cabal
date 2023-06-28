@@ -85,3 +85,41 @@ library
       plutus-contract,
       cardano-api >= 1.35,
       cardano-node-emulator,
+
+test-suite cooked-contractmodel-tests
+  import: lang
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  hs-source-dirs: test
+  other-modules:
+    Spec.Auction
+  -- Internal dependencies
+  build-depends:
+    apps-compat-contractmodel,
+    quickcheck-contractmodel,
+    cooked-contractmodel
+  -- General dependencies
+  build-depends:
+    base >=4.7 && <5,
+    cooked-validators,
+    auction,
+    lens,
+    mtl,
+    bytestring,
+    data-default,
+    monad-control,
+    QuickCheck -any,
+    quickcheck-dynamic >= 2.0.0,
+    tasty,
+    tasty-quickcheck
+  -- Plutus and Cardano dependencies
+  build-depends:
+    plutus-ledger-api,
+    plutus-tx,
+    plutus-script-utils,
+    plutus-ledger,
+    plutus-contract,
+    cardano-api >= 1.35,
+    cardano-slotting,
+    cardano-node-emulator,
+

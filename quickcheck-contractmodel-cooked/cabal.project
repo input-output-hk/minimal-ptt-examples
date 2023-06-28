@@ -1,16 +1,5 @@
-packages: .
-          apps-compat-contractmodel
-          cooked-contractmodel
-          certification
-
-
-index-state: 2023-05-01T00:00:00Z
-index-state:
-  , hackage.haskell.org 2023-05-01T00:00:00Z
-  , cardano-haskell-packages 2023-05-10T00:00:00Z
-
--- Custom repository for cardano haskell packages
--- See https://github.com/input-output-hk/cardano-haskell-packages on how to use CHaP in a Haskell project.
+-- Custom repository for cardano haskell packages, see CONTRIBUTING
+-- in github.com/input-ouput-hk/plutus in for more
 repository cardano-haskell-packages
   url: https://input-output-hk.github.io/cardano-haskell-packages
   secure: True
@@ -22,48 +11,18 @@ repository cardano-haskell-packages
     c00aae8461a256275598500ea0e187588c35a5d5d7454fb57eac18d9edb86a56
     d4a35cd3121aa00d18544bb0ac01c3e1691d618f462c46129271bccf39f7e8ee
 
-source-repository-package
-  type: git
-  location: https://github.com/tweag/cooked-validators.git
-  tag: b20ed00ebc5321368746672f60ddd0d130db7bcf
-  --sha256: 1ild5dh03j2vnzzd2w1vg9j38srgsc4iyfph973hp9b1yhvqfkky
+index-state: 2023-05-01T00:00:00Z
+index-state:
+  , hackage.haskell.org 2023-05-01T00:00:00Z
+  , cardano-haskell-packages 2023-05-10T00:00:00Z
 
 -- maybe needed
 package cardano-crypto-praos
   flags: -external-libsodium-vrf
 
-source-repository-package
-  type: git
-  location: https://github.com/input-output-hk/plutus-apps.git
-  tag: 68c37212b76c68ab4ee566b5e27eaf4c30396671
-  --sha256: 07dhd6njf6dlw6w5h9v0yv50d1c91yhsz56vz8glid8xl9warc49
-  subdir:
-    cardano-node-emulator
-    cardano-streaming
-    freer-extras
-    marconi-core
-    marconi-chain-index
-    pab-blockfrost
-    plutus-chain-index
-    plutus-chain-index-core
-    plutus-contract
-    plutus-contract-model
-    plutus-pab
-    plutus-ledger
-    plutus-script-utils
-    plutus-tx-constraints
-    plutus-contract-certification
-
--- We never, ever, want this.
-write-ghc-environment-files: never
-
--- Always build tests and benchmarks.
-tests: true
-benchmarks: true
-
--- The only sensible test display option, since it allows us to have colourized
--- 'tasty' output.
-test-show-details: direct
+packages:
+  apps-compat-contractmodel,
+  cooked-contractmodel
 
 -- cardano-addresses unit tests bring in some version constraint conflicts:
 --
@@ -140,52 +99,50 @@ constraints:
   , resource-pool                <  0.4.0.0
   , ouroboros-consensus-protocol == 0.1.0.1
 
--- The plugin will typically fail when producing Haddock documentation. However,
--- in this instance you can simply tell it to defer any errors to runtime (which
--- will never happen since you're building documentation).
---
--- So, any package using 'PlutusTx.compile' in the code for which you need to
--- generate haddock documentation should use the following 'haddock-options'.
-package plutus-ledger
-  haddock-options: "--optghc=-fplugin-opt PlutusTx.Plugin:defer-errors"
-package plutus-script-utils
-  haddock-options: "--optghc=-fplugin-opt PlutusTx.Plugin:defer-errors"
-package plutus-contract
-  haddock-options: "--optghc=-fplugin-opt PlutusTx.Plugin:defer-errors"
-package plutus-contract-model
-  haddock-options: "--optghc=-fplugin-opt PlutusTx.Plugin:defer-errors"
+source-repository-package
+  type: git
+  location: https://github.com/tweag/cooked-validators.git
+  tag: b20ed00ebc5321368746672f60ddd0d130db7bcf
+  --sha256: 1ild5dh03j2vnzzd2w1vg9j38srgsc4iyfph973hp9b1yhvqfkky
 
--- These packages appear in our dependency tree and are very slow to build.
--- Empirically, turning off optimization shaves off ~50% build time.
--- It also mildly improves recompilation avoidance.
--- For dev work we don't care about performance so much, so this is okay.
-package cardano-ledger-alonzo
-  optimization: False
-package ouroboros-consensus-shelley
-  optimization: False
-package ouroboros-consensus-cardano
-  optimization: False
-package cardano-api
-  optimization: False
-package cardano-wallet
-  optimization: False
-package cardano-wallet-core
-  optimization: False
-package cardano-wallet-cli
-  optimization: False
-package cardano-wallet-launcher
-  optimization: False
-package cardano-wallet-core-integration
-  optimization: False
+source-repository-package
+  type: git
+  location: https://github.com/tweag/cooked-smart-contracts.git
+  tag: 0612c438c5a603f820557fd2c994e308a7136c64
+  subdir:
+    auction
+  --sha256: 1qxc18mrh2v1vgrbcd4nhvbrrbpjh4m00lys082cdqk4wiamw2zi
 
--- Direct dependency.
--- Compared to others, cardano-wallet doesn't bump dependencies very often.
--- Making it a good place to start when bumping dependencies.
--- As, for example, bumping the node first highly risks breaking API with the wallet.
--- Unless early bug fixes are required, this is fine as the wallet tracks stable releases of the node.
--- And it is indeed nice for plutus-apps to track stable releases of the node too.
---
--- The current version is dated 2022/08/10
+source-repository-package
+  type: git
+  location: https://github.com/input-output-hk/plutus-apps.git
+  tag: 68c37212b76c68ab4ee566b5e27eaf4c30396671
+  --sha256: 07dhd6njf6dlw6w5h9v0yv50d1c91yhsz56vz8glid8xl9warc49
+  subdir:
+    cardano-node-emulator
+    cardano-streaming
+    freer-extras
+    marconi-chain-index
+    marconi-core
+    marconi-sidechain
+    pab-blockfrost
+    plutus-chain-index
+    plutus-chain-index-core
+    plutus-contract
+    plutus-e2e-tests
+    plutus-example
+    plutus-ledger
+    plutus-pab
+    plutus-script-utils
+    plutus-tx-constraints
+
+-- The last update fixes some bug
+source-repository-package
+  type: git
+  location: https://github.com/astanin/moo
+  tag: dbda5e76ac3b4c72c805ec0cdb9bcdff7bb6247d
+  --sha256: 1mdj218hgh7s5a6b9k14vg9i06zxah0wa42ycdgh245izs8nfv0x
+
 source-repository-package
     type: git
     location: https://github.com/input-output-hk/cardano-wallet
