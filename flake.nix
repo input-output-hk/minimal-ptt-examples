@@ -19,24 +19,22 @@
         rootProject = internal-lib.make-haskell-nix-pkg {
           inherit (inputs) haskellNix CHaP;
           inherit pkgs;
-          src = "${self}/vesting";
+          src = "${self}/escrow";
           compiler-nix-name = "ghc8107";
         };
         flake = rootProject.flake { };
+        lang = if system == "x86_64-darwin" then "C" else "C.UTF-8";
       in
       {
-
-        packages.vesting = flake.packages."vesting:lib:vesting";
+        packages.escrow = flake.packages."escrow:lib:escrow";
         packages.default = flake.packages."certification:lib:certification";
 
-
         devShells.default = rootProject.shellFor {
-        # tools = self.vesting-common.toolsFor rootProject.index-state;
           buildInputs = [
-          ## For UTF-8 locales
-          pkgs.glibcLocales
+            ## For UTF-8 locales
+            pkgs.glibcLocales
           ];
-          LANG = "C.UTF-8";
+          LANG = lang;
         };
 
         legacyPackages = rootProject;
