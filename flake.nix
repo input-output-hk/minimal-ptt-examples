@@ -23,20 +23,18 @@
           compiler-nix-name = "ghc8107";
         };
         flake = rootProject.flake { };
+        lang = if system == "x86_64-darwin" then "C" else "C.UTF-8";
       in
       {
-
         packages.escrow = flake.packages."escrow:lib:escrow";
         packages.default = flake.packages."certification:lib:certification";
 
-
         devShells.default = rootProject.shellFor {
-        # tools = self.escrow-common.toolsFor escrow.index-state;
           buildInputs = [
-          ## For UTF-8 locales
-          pkgs.glibcLocales
+            ## For UTF-8 locales
+            pkgs.glibcLocales
           ];
-          LANG = "C.UTF-8";
+          LANG = lang;
         };
 
         legacyPackages = rootProject;
