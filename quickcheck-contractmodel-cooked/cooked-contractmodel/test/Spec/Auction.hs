@@ -220,5 +220,5 @@ prop_doubleSatisfaction = propRunActions testInit () (assertThreatModel doubleSa
 tests :: TestTree
 tests = testGroup "Auction"
   [ testProperty "prop_auction" prop_auction
-  , testProperty "prop_doubleSatisfaction fails" $ expectFailure prop_doubleSatisfaction
+  , testProperty "prop_doubleSatisfaction fails" prop_doubleSatisfaction
   ]
