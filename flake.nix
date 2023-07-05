@@ -19,7 +19,7 @@
         rootProject = internal-lib.make-haskell-nix-pkg {
           inherit (inputs) haskellNix CHaP;
           inherit pkgs;
-          src = "${self}/escrow";
+          src = "${self}/quickcheck-contractmodel-cooked";
           compiler-nix-name = "ghc8107";
         };
         flake = rootProject.flake { };
@@ -27,10 +27,6 @@
         #haskellPackages = pkgs.haskell.packages.${"ghc8107"};
       in
       {
-
-        packages.escrow = flake.packages."escrow:lib:escrow";
-        packages.default = flake.packages."certification:lib:certification";
-
 
         devShells.default = rootProject.shellFor {
         # buildInputs = with haskellPackages [
