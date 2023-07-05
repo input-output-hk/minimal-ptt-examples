@@ -19,14 +19,14 @@
         rootProject = internal-lib.make-haskell-nix-pkg {
           inherit (inputs) haskellNix CHaP;
           inherit pkgs;
-          src = "${self}/escrow";
+          src = "${self}/vesting";
           compiler-nix-name = "ghc8107";
         };
         flake = rootProject.flake { };
         lang = if system == "x86_64-darwin" then "C" else "C.UTF-8";
       in
       {
-        packages.escrow = flake.packages."escrow:lib:escrow";
+        packages.vesting = flake.packages."vesting:lib:vesting";
         packages.default = flake.packages."certification:lib:certification";
 
         devShells.default = rootProject.shellFor {
