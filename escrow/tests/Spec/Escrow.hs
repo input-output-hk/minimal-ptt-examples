@@ -20,7 +20,8 @@ module Spec.Escrow( certification
                   , prop_observeEscrow
                   , prop_NoLockedFunds
                   , prop_validityChecks
-                  , EscrowModel) where
+                  , EscrowModel
+                  , prop_UnitTest) where
 
 import Control.Lens hiding (both)
 import Control.Monad (void, when)
@@ -415,6 +416,15 @@ unitTest2 = do
               action $ Pay w1 val
               waitUntilDL 100
               action $ Refund w1
+
+unitTest3 :: DL EscrowModel ()
+unitTest3 = do
+              action $ Pay (w2) 27
+              action $ Pay (w4) 22
+              action $ Redeem (w5)
+
+prop_UnitTest :: Property
+prop_UnitTest = withMaxSuccess 10 $ forAllDL unitTest3 prop_Escrow
 
 -- | Certification.
 certification :: Certification EscrowModel

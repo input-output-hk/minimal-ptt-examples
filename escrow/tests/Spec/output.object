@@ -1,0 +1,578 @@
+
+
+Prelude Spec.Escrow Main> Plutus.Contract.Test.Certification.Run.certify
+
+<interactive>:4:1: error:
+    • No instance for (Show
+                         (Plutus.Contract.Test.Certification.Certification m0
+                          -> IO
+                               (Plutus.Contract.Test.Certification.Run.CertificationReport m0)))
+        arising from a use of ‘print’
+        (maybe you haven't applied a function to enough arguments?)
+    • In the first argument of ‘print’, namely ‘it’
+      In a stmt of an interactive GHCi command: print it
+Prelude Spec.Escrow Main> Plutus.Contract.Test.Certification.Run.certify certification
+ld: warning: dylib (/usr/local/homebrew/lib/libsodium.dylib) was built for newer macOS version (12.0) than being linked (10.12)
+^C^D^CInterrupted.
+Prelude Spec.Escrow Main>
+
+
+
+
+
+Prelude Spec.Escrow Main> Plutus.Contract.Test.Certification.Run.certify certification
+^CInterrupted.
+Prelude Spec.Escrow Main> :r
+[2 of 3] Compiling Spec.Escrow      ( tests/Spec/Escrow.hs, /Users/alasdairhill/Documents/minimal-escrow/escrow/dist-newstyle/build/x86_64-osx/ghc-8.10.7/escrow-1.2.0.0/t/escrow-test/build/escrow-test/escrow-test-tmp/Spec/Escrow.o )
+
+tests/Spec/Escrow.hs:129:7: warning: [-Wunused-matches]
+    Defined but not used: ‘v’
+    |
+129 |       v <- viewContractState $ contributions . at w . to fold
+    |       ^
+Ok, three modules loaded.
+Prelude Spec.Escrow Main>
+
+
+
+
+
+
+
+
+Prelude Spec.Escrow Main> Plutus.Contract.Test.Certification.Run.certify certification
+ld: warning: dylib (/usr/local/homebrew/lib/libsodium.dylib) was built for newer macOS version (12.0) than being linked (10.12)
+*** Failed! Falsified (after 9 tests and 2 shrinks):
+Actions
+ [Pay (Wallet 2) 27,
+  Pay (Wallet 4) 22,
+  Redeem (Wallet 5)]
+Balance changes don't match:
+  Predicted symbolic balance changes:
+    Wallet 4: {-22000000 Lovelace}
+    Wallet 2: {-7000000 Lovelace}
+    Wallet 1: {10000000 Lovelace}
+    Wallet 5: {19000000 Lovelace}
+  Predicted actual balance changes:
+    Wallet 4: {-22000000 Lovelace}
+    Wallet 2: {-7000000 Lovelace}
+    Wallet 1: {10000000 Lovelace}
+    Wallet 5: {19000000 Lovelace}
+  Actual balance changes:
+    Wallet 4: {-22000000 Lovelace}
+    Wallet 2: {-27000000 Lovelace}
+  Sum of min Lovelace: Lovelace 3784180
+=========[COVERED]==========
+========[UNCOVERED]=========
+src/Contract/Escrow.hs:196,1-204,23
+src/Contract/Escrow.hs:198,9-198,50
+src/Contract/Escrow.hs:198,9-198,59
+src/Contract/Escrow.hs:198,21-198,24
+src/Contract/Escrow.hs:198,25-198,50
+src/Contract/Escrow.hs:198,57-198,59
+src/Contract/Escrow.hs:200,30-200,43
+src/Contract/Escrow.hs:200,44-200,47
+src/Contract/Escrow.hs:200,9-204,23
+src/Contract/Escrow.hs:202,30-202,41
+src/Contract/Escrow.hs:202,57-202,84
+src/Contract/Escrow.hs:202,74-202,83
+src/Contract/Escrow.hs:202,17-203,55
+src/Contract/Escrow.hs:203,20-203,55
+src/Contract/Escrow.hs:203,33-203,40
+src/Contract/Escrow.hs:203,42-203,45
+src/Contract/Escrow.hs:203,52-203,54
+src/Contract/Escrow.hs:204,18-204,23
+src/Contract/Escrow.hs:208,1-215,108
+src/Contract/Escrow.hs:209,5-215,108
+src/Contract/Escrow.hs:211,26-211,48
+src/Contract/Escrow.hs:211,50-211,64
+src/Contract/Escrow.hs:211,13-212,96
+src/Contract/Escrow.hs:212,16-212,96
+src/Contract/Escrow.hs:212,29-212,42
+src/Contract/Escrow.hs:212,48-212,81
+src/Contract/Escrow.hs:212,61-212,80
+src/Contract/Escrow.hs:212,82-212,95
+src/Contract/Escrow.hs:214,26-214,49
+src/Contract/Escrow.hs:214,51-214,71
+src/Contract/Escrow.hs:214,52-214,66
+src/Contract/Escrow.hs:214,69-214,70
+src/Contract/Escrow.hs:214,81-214,117
+src/Contract/Escrow.hs:214,13-215,108
+src/Contract/Escrow.hs:215,16-215,108
+src/Contract/Escrow.hs:215,29-215,41
+src/Contract/Escrow.hs:215,43-215,62
+src/Contract/Escrow.hs:215,76-215,107
+src/Contract/Escrow.hs:381,23-381,56
+src/Contract/Escrow.hs:198,9-198,59 = False
+src/Contract/Escrow.hs:198,9-198,59 = True
+src/Contract/Escrow.hs:202,57-202,84 = False
+src/Contract/Escrow.hs:202,57-202,84 = True
+src/Contract/Escrow.hs:203,20-203,55 = False
+src/Contract/Escrow.hs:203,20-203,55 = True
+src/Contract/Escrow.hs:212,16-212,96 = False
+src/Contract/Escrow.hs:212,16-212,96 = True
+src/Contract/Escrow.hs:214,13-215,108 = False
+src/Contract/Escrow.hs:214,13-215,108 = True
+src/Contract/Escrow.hs:215,16-215,108 = False
+src/Contract/Escrow.hs:215,16-215,108 = True
+=========[IGNORED]==========
+*** Failed! Falsified (after 1 test):
+do action $ Pay (Wallet 4) 20
+   pure ()
+
+do action $ WaitUntil (SlotNo 41)
+   action $ Refund (Wallet 4)
+   pure ()
+
+Main strategy
+Actions
+ [Pay (Wallet 4) 20,
+  WaitUntil (SlotNo 41),
+  Refund (Wallet 4)]
+Locked funds should be at most SymValue {symValMap = fromList [], actualValPart = valueFromList []}, but they are
+  SymValue {symValMap = fromList [], actualValPart = valueFromList [(AdaAssetId,20000000)]}
+*** Failed! Falsified (after 13 tests and 3 shrinks):
+Actions
+ [Pay (Wallet 3) 30,
+  Redeem (Wallet 3)]
+Balance changes don't match:
+  Predicted symbolic balance changes:
+    Wallet 3: {-30000000 Lovelace}
+    Wallet 2: {20000000 Lovelace}
+    Wallet 1: {10000000 Lovelace}
+  Predicted actual balance changes:
+    Wallet 3: {-30000000 Lovelace}
+    Wallet 2: {20000000 Lovelace}
+    Wallet 1: {10000000 Lovelace}
+  Actual balance changes: Wallet 3: {-30000000 Lovelace}
+  Sum of min Lovelace: Lovelace 1892090
+=========[COVERED]==========
+========[UNCOVERED]=========
+src/Contract/Escrow.hs:196,1-204,23
+src/Contract/Escrow.hs:198,9-198,50
+src/Contract/Escrow.hs:198,9-198,59
+src/Contract/Escrow.hs:198,21-198,24
+src/Contract/Escrow.hs:198,25-198,50
+src/Contract/Escrow.hs:198,57-198,59
+src/Contract/Escrow.hs:200,30-200,43
+src/Contract/Escrow.hs:200,44-200,47
+src/Contract/Escrow.hs:200,9-204,23
+src/Contract/Escrow.hs:202,30-202,41
+src/Contract/Escrow.hs:202,57-202,84
+src/Contract/Escrow.hs:202,74-202,83
+src/Contract/Escrow.hs:202,17-203,55
+src/Contract/Escrow.hs:203,20-203,55
+src/Contract/Escrow.hs:203,33-203,40
+src/Contract/Escrow.hs:203,42-203,45
+src/Contract/Escrow.hs:203,52-203,54
+src/Contract/Escrow.hs:204,18-204,23
+src/Contract/Escrow.hs:208,1-215,108
+src/Contract/Escrow.hs:209,5-215,108
+src/Contract/Escrow.hs:211,26-211,48
+src/Contract/Escrow.hs:211,50-211,64
+src/Contract/Escrow.hs:211,13-212,96
+src/Contract/Escrow.hs:212,16-212,96
+src/Contract/Escrow.hs:212,29-212,42
+src/Contract/Escrow.hs:212,48-212,81
+src/Contract/Escrow.hs:212,61-212,80
+src/Contract/Escrow.hs:212,82-212,95
+src/Contract/Escrow.hs:214,26-214,49
+src/Contract/Escrow.hs:214,51-214,71
+src/Contract/Escrow.hs:214,52-214,66
+src/Contract/Escrow.hs:214,69-214,70
+src/Contract/Escrow.hs:214,81-214,117
+src/Contract/Escrow.hs:214,13-215,108
+src/Contract/Escrow.hs:215,16-215,108
+src/Contract/Escrow.hs:215,29-215,41
+src/Contract/Escrow.hs:215,43-215,62
+src/Contract/Escrow.hs:215,76-215,107
+src/Contract/Escrow.hs:381,23-381,56
+src/Contract/Escrow.hs:198,9-198,59 = False
+src/Contract/Escrow.hs:198,9-198,59 = True
+src/Contract/Escrow.hs:202,57-202,84 = False
+src/Contract/Escrow.hs:202,57-202,84 = True
+src/Contract/Escrow.hs:203,20-203,55 = False
+src/Contract/Escrow.hs:203,20-203,55 = True
+src/Contract/Escrow.hs:212,16-212,96 = False
+src/Contract/Escrow.hs:212,16-212,96 = True
+src/Contract/Escrow.hs:214,13-215,108 = False
+src/Contract/Escrow.hs:214,13-215,108 = True
+src/Contract/Escrow.hs:215,16-215,108 = False
+src/Contract/Escrow.hs:215,16-215,108 = True
+=========[IGNORED]==========
+*** Failed! Assertion failed (after 8 tests and 1 shrink):
+Actions
+ [Pay (Wallet 3) 16,
+  Pay (Wallet 5) 21,
+  Redeem (Wallet 2)]
+Transactions failed to validate:
+a8aadfebb9882d2181fbedaf79816041c64a52b1eb0f1b972fbbb10a34d0339f: CardanoLedgerValidationError "ApplyTxError [UtxowFailure (UtxoFailure (FromAlonzoUtxoFail (MaxTxSizeUTxO 17999 16384)))]"
+Test failed.
+Emulator log:
+[INFO] Slot 0: TxnValidate 4b3900ad38e0dcf405aa8aef875600a50f7d63a6fa78b899f5345aba6b585a07 [  ]
+[INFO] Slot 1: 00000000-0000-4000-8000-000000000000 {Wallet W[1]}:
+                 Contract instance started
+[INFO] Slot 1: 00000000-0000-4000-8000-000000000001 {Wallet W[2]}:
+                 Contract instance started
+[INFO] Slot 1: 00000000-0000-4000-8000-000000000002 {Wallet W[3]}:
+                 Contract instance started
+[INFO] Slot 1: 00000000-0000-4000-8000-000000000003 {Wallet W[4]}:
+                 Contract instance started
+[INFO] Slot 1: 00000000-0000-4000-8000-000000000004 {Wallet W[5]}:
+                 Contract instance started
+[INFO] Slot 1: 00000000-0000-4000-8000-000000000002 {Wallet W[3]}:
+                 Receive endpoint call on 'pay-escrow' for Object (fromList [("contents",Array [Object (fromList [("getEndpointDescription",String "pay-escrow")]),Object (fromList [("unEndpointValue",Object (fromList [("getValue",Array [Array [Object (fromList [("unCurrencySymbol",String "")]),Array [Array [Object (fromList [("unTokenName",String "")]),Number 1.6e7]]]])]))])]),("tag",String "ExposeEndpointResp")])
+[INFO] Slot 1: W[3]: Balancing an unbalanced transaction:
+                       Tx 4bbbb856a9ecc96e1e477e818e3e9d2bb8f1cf539ea37b5eaad67d3332697320:
+                         inputs:
+                         reference inputs:
+                         collateral inputs:
+                         outputs:
+                           - 16000000 lovelace addressed to
+                             ScriptCredential: 8a3ecdafa6b25102dd579b8936b45d7c45837ffe6b022f11916aa5a6 (no staking credential)
+                             with datum in tx ScriptDataBytes ".\n\214\f2\a$\140\236\212}\189\227\215R\224\170\209A\214\184\248\SUB\194\198\236\162|"
+                         mint:
+                         fee: 0 lovelace
+                         validity range: Interval {ivFrom = LowerBound (Finite (Slot {getSlot = 0})) True, ivTo = UpperBound (Finite (Slot {getSlot = 40})) False}
+                         data:
+                           ( 2cc2afd267462229babbc139837611310e4307bd6c7e870049c22fb02c2ad122
+                           , ".\n\214\f2\a$\140\236\212}\189\227\215R\224\170\209A\214\184\248\SUB\194\198\236\162|" )
+                         redeemers:
+                       Utxo index:
+[INFO] Slot 1: W[3]: Finished balancing:
+                       Tx 577c0fbc8183b218791a85aba2fd13d826b918aae150f7e85c315910e9e9892a:
+                         inputs:
+                           - 4b3900ad38e0dcf405aa8aef875600a50f7d63a6fa78b899f5345aba6b585a07!0
+                         reference inputs:
+                         collateral inputs:
+                         outputs:
+                           - 16000000 lovelace addressed to
+                             ScriptCredential: 8a3ecdafa6b25102dd579b8936b45d7c45837ffe6b022f11916aa5a6 (no staking credential)
+                             with datum in tx ScriptDataBytes ".\n\214\f2\a$\140\236\212}\189\227\215R\224\170\209A\214\184\248\SUB\194\198\236\162|"
+                           - 9999999983829483 lovelace addressed to
+                             PubKeyCredential: 2e0ad60c3207248cecd47dbde3d752e0aad141d6b8f81ac2c6eca27c (no staking credential)
+                         mint:
+                         fee: 170517 lovelace
+                         validity range: Interval {ivFrom = LowerBound (Finite (Slot {getSlot = 0})) True, ivTo = UpperBound (Finite (Slot {getSlot = 40})) False}
+                         data:
+                           ( 2cc2afd267462229babbc139837611310e4307bd6c7e870049c22fb02c2ad122
+                           , ".\n\214\f2\a$\140\236\212}\189\227\215R\224\170\209A\214\184\248\SUB\194\198\236\162|" )
+                         redeemers:
+[INFO] Slot 1: W[3]: Signing tx: 577c0fbc8183b218791a85aba2fd13d826b918aae150f7e85c315910e9e9892a
+[INFO] Slot 1: W[3]: Submitting tx: 577c0fbc8183b218791a85aba2fd13d826b918aae150f7e85c315910e9e9892a
+[INFO] Slot 1: W[3]: TxSubmit: 577c0fbc8183b218791a85aba2fd13d826b918aae150f7e85c315910e9e9892a
+[INFO] Slot 1: TxnValidate 577c0fbc8183b218791a85aba2fd13d826b918aae150f7e85c315910e9e9892a [  ]
+[INFO] Slot 2: 00000000-0000-4000-8000-000000000004 {Wallet W[5]}:
+                 Receive endpoint call on 'pay-escrow' for Object (fromList [("contents",Array [Object (fromList [("getEndpointDescription",String "pay-escrow")]),Object (fromList [("unEndpointValue",Object (fromList [("getValue",Array [Array [Object (fromList [("unCurrencySymbol",String "")]),Array [Array [Object (fromList [("unTokenName",String "")]),Number 2.1e7]]]])]))])]),("tag",String "ExposeEndpointResp")])
+[INFO] Slot 2: W[5]: Balancing an unbalanced transaction:
+                       Tx b747d2c538c99b571ab5abc3cddf51d91ebcd1c1cdab25f8bd75b0dfe07649a8:
+                         inputs:
+                         reference inputs:
+                         collateral inputs:
+                         outputs:
+                           - 21000000 lovelace addressed to
+                             ScriptCredential: 8a3ecdafa6b25102dd579b8936b45d7c45837ffe6b022f11916aa5a6 (no staking credential)
+                             with datum in tx ScriptDataBytes "\191\&4-\221;\SUBa\145\212\206\147l\146\210\152\&4\214\135\158\223(I\234\234\132\200'\248"
+                         mint:
+                         fee: 0 lovelace
+                         validity range: Interval {ivFrom = LowerBound (Finite (Slot {getSlot = 0})) True, ivTo = UpperBound (Finite (Slot {getSlot = 40})) False}
+                         data:
+                           ( e7347ec268e4a077280db2be5224822e7366cd061db0fd8e2cda0c72e1a3e503
+                           , "\191\&4-\221;\SUBa\145\212\206\147l\146\210\152\&4\214\135\158\223(I\234\234\132\200'\248" )
+                         redeemers:
+                       Utxo index:
+[INFO] Slot 2: W[5]: Finished balancing:
+                       Tx 2fbb27714ca8227f4a97abf65e38ad422638884d6105066fdf7dc713889a4e1d:
+                         inputs:
+                           - 4b3900ad38e0dcf405aa8aef875600a50f7d63a6fa78b899f5345aba6b585a07!70
+                         reference inputs:
+                         collateral inputs:
+                         outputs:
+                           - 21000000 lovelace addressed to
+                             ScriptCredential: 8a3ecdafa6b25102dd579b8936b45d7c45837ffe6b022f11916aa5a6 (no staking credential)
+                             with datum in tx ScriptDataBytes "\191\&4-\221;\SUBa\145\212\206\147l\146\210\152\&4\214\135\158\223(I\234\234\132\200'\248"
+                           - 9999999978829439 lovelace addressed to
+                             PubKeyCredential: bf342ddd3b1a6191d4ce936c92d29834d6879edf2849eaea84c827f8 (no staking credential)
+                         mint:
+                         fee: 170561 lovelace
+                         validity range: Interval {ivFrom = LowerBound (Finite (Slot {getSlot = 0})) True, ivTo = UpperBound (Finite (Slot {getSlot = 40})) False}
+                         data:
+                           ( e7347ec268e4a077280db2be5224822e7366cd061db0fd8e2cda0c72e1a3e503
+                           , "\191\&4-\221;\SUBa\145\212\206\147l\146\210\152\&4\214\135\158\223(I\234\234\132\200'\248" )
+                         redeemers:
+[INFO] Slot 2: W[5]: Signing tx: 2fbb27714ca8227f4a97abf65e38ad422638884d6105066fdf7dc713889a4e1d
+[INFO] Slot 2: W[5]: Submitting tx: 2fbb27714ca8227f4a97abf65e38ad422638884d6105066fdf7dc713889a4e1d
+[INFO] Slot 2: W[5]: TxSubmit: 2fbb27714ca8227f4a97abf65e38ad422638884d6105066fdf7dc713889a4e1d
+[INFO] Slot 2: TxnValidate 2fbb27714ca8227f4a97abf65e38ad422638884d6105066fdf7dc713889a4e1d [  ]
+[INFO] Slot 3: 00000000-0000-4000-8000-000000000001 {Wallet W[2]}:
+                 Receive endpoint call on 'redeem-escrow' for Object (fromList [("contents",Array [Object (fromList [("getEndpointDescription",String "redeem-escrow")]),Object (fromList [("unEndpointValue",Array [])])]),("tag",String "ExposeEndpointResp")])
+[INFO] Slot 3: W[2]: Balancing an unbalanced transaction:
+                       Tx 53b10a8c4a5e15374df16323d91705855a4b90214731e0b3c887d37a9397af8c:
+                         inputs:
+                           - 2fbb27714ca8227f4a97abf65e38ad422638884d6105066fdf7dc713889a4e1d!0
+                           - 577c0fbc8183b218791a85aba2fd13d826b918aae150f7e85c315910e9e9892a!0
+                         reference inputs:
+                         collateral inputs:
+                         outputs:
+                           - 10000000 lovelace addressed to
+                             PubKeyCredential: a2c20c77887ace1cd986193e4e75babd8993cfd56995cd5cfce609c2 (no staking credential)
+                           - 20000000 lovelace addressed to
+                             PubKeyCredential: 80a4f45b56b88d1139da23bc4c3c75ec6d32943c087f250b86193ca7 (no staking credential)
+                         mint:
+                         fee: 0 lovelace
+                         validity range: Interval {ivFrom = LowerBound NegInf True, ivTo = UpperBound (Finite (Slot {getSlot = 39})) False}
+                         data:
+                           ( 2cc2afd267462229babbc139837611310e4307bd6c7e870049c22fb02c2ad122
+                           , ".\n\214\f2\a$\140\236\212}\189\227\215R\224\170\209A\214\184\248\SUB\194\198\236\162|" )
+                           ( e7347ec268e4a077280db2be5224822e7366cd061db0fd8e2cda0c72e1a3e503
+                           , "\191\&4-\221;\SUBa\145\212\206\147l\146\210\152\&4\214\135\158\223(I\234\234\132\200'\248" )
+                         redeemers:
+                           RedeemerPtr Spend 0 : Constr 0 []
+                           RedeemerPtr Spend 1 : Constr 0 []
+                         attached scripts:
+                           PlutusScript PlutusV2 ScriptHash "8a3ecdafa6b25102dd579b8936b45d7c45837ffe6b022f11916aa5a6"
+                       Utxo index:
+                         ( 2fbb27714ca8227f4a97abf65e38ad422638884d6105066fdf7dc713889a4e1d!0
+                         , - 21000000 lovelace addressed to
+                             ScriptCredential: 8a3ecdafa6b25102dd579b8936b45d7c45837ffe6b022f11916aa5a6 (no staking credential)
+                             with datum hash e7347ec268e4a077280db2be5224822e7366cd061db0fd8e2cda0c72e1a3e503 )
+                         ( 577c0fbc8183b218791a85aba2fd13d826b918aae150f7e85c315910e9e9892a!0
+                         , - 16000000 lovelace addressed to
+                             ScriptCredential: 8a3ecdafa6b25102dd579b8936b45d7c45837ffe6b022f11916aa5a6 (no staking credential)
+                             with datum hash 2cc2afd267462229babbc139837611310e4307bd6c7e870049c22fb02c2ad122 )
+[INFO] Slot 3: W[2]: Finished balancing:
+                       Tx a8aadfebb9882d2181fbedaf79816041c64a52b1eb0f1b972fbbb10a34d0339f:
+                         inputs:
+                           - 2fbb27714ca8227f4a97abf65e38ad422638884d6105066fdf7dc713889a4e1d!0
+                           - 577c0fbc8183b218791a85aba2fd13d826b918aae150f7e85c315910e9e9892a!0
+                         reference inputs:
+                         collateral inputs:
+                           - 4b3900ad38e0dcf405aa8aef875600a50f7d63a6fa78b899f5345aba6b585a07!20
+                         outputs:
+                           - 10000000 lovelace addressed to
+                             PubKeyCredential: a2c20c77887ace1cd986193e4e75babd8993cfd56995cd5cfce609c2 (no staking credential)
+                           - 20000000 lovelace addressed to
+                             PubKeyCredential: 80a4f45b56b88d1139da23bc4c3c75ec6d32943c087f250b86193ca7 (no staking credential)
+                           - 5795516 lovelace addressed to
+                             PubKeyCredential: 80a4f45b56b88d1139da23bc4c3c75ec6d32943c087f250b86193ca7 (no staking credential)
+                         return collateral:
+                           - 9999999998193274 lovelace addressed to
+                             PubKeyCredential: 80a4f45b56b88d1139da23bc4c3c75ec6d32943c087f250b86193ca7 (no staking credential)
+                         total collateral: 1806726 lovelace
+                         mint:
+                         fee: 1204484 lovelace
+                         validity range: Interval {ivFrom = LowerBound NegInf True, ivTo = UpperBound (Finite (Slot {getSlot = 39})) False}
+                         data:
+                           ( 2cc2afd267462229babbc139837611310e4307bd6c7e870049c22fb02c2ad122
+                           , ".\n\214\f2\a$\140\236\212}\189\227\215R\224\170\209A\214\184\248\SUB\194\198\236\162|" )
+                           ( e7347ec268e4a077280db2be5224822e7366cd061db0fd8e2cda0c72e1a3e503
+                           , "\191\&4-\221;\SUBa\145\212\206\147l\146\210\152\&4\214\135\158\223(I\234\234\132\200'\248" )
+                         redeemers:
+                           RedeemerPtr Spend 0 : Constr 0 []
+                           RedeemerPtr Spend 1 : Constr 0 []
+                         attached scripts:
+                           PlutusScript PlutusV2 ScriptHash "8a3ecdafa6b25102dd579b8936b45d7c45837ffe6b022f11916aa5a6"
+[INFO] Slot 3: W[2]: Signing tx: a8aadfebb9882d2181fbedaf79816041c64a52b1eb0f1b972fbbb10a34d0339f
+[INFO] Slot 3: W[2]: Submitting tx: a8aadfebb9882d2181fbedaf79816041c64a52b1eb0f1b972fbbb10a34d0339f
+[INFO] Slot 3: W[2]: TxSubmit: a8aadfebb9882d2181fbedaf79816041c64a52b1eb0f1b972fbbb10a34d0339f
+[WARNING] Slot 3: TxnValidationFail Phase1 a8aadfebb9882d2181fbedaf79816041c64a52b1eb0f1b972fbbb10a34d0339f: CardanoLedgerValidationError "ApplyTxError [UtxowFailure (UtxoFailure (FromAlonzoUtxoFail (MaxTxSizeUTxO 17999 16384)))]" [  ]
+=========[COVERED]==========
+========[UNCOVERED]=========
+src/Contract/Escrow.hs:196,1-204,23
+src/Contract/Escrow.hs:198,9-198,50
+src/Contract/Escrow.hs:198,9-198,59
+src/Contract/Escrow.hs:198,21-198,24
+src/Contract/Escrow.hs:198,25-198,50
+src/Contract/Escrow.hs:198,57-198,59
+src/Contract/Escrow.hs:200,30-200,43
+src/Contract/Escrow.hs:200,44-200,47
+src/Contract/Escrow.hs:200,9-204,23
+src/Contract/Escrow.hs:202,30-202,41
+src/Contract/Escrow.hs:202,57-202,84
+src/Contract/Escrow.hs:202,74-202,83
+src/Contract/Escrow.hs:202,17-203,55
+src/Contract/Escrow.hs:203,20-203,55
+src/Contract/Escrow.hs:203,33-203,40
+src/Contract/Escrow.hs:203,42-203,45
+src/Contract/Escrow.hs:203,52-203,54
+src/Contract/Escrow.hs:204,18-204,23
+src/Contract/Escrow.hs:208,1-215,108
+src/Contract/Escrow.hs:209,5-215,108
+src/Contract/Escrow.hs:211,26-211,48
+src/Contract/Escrow.hs:211,50-211,64
+src/Contract/Escrow.hs:211,13-212,96
+src/Contract/Escrow.hs:212,16-212,96
+src/Contract/Escrow.hs:212,29-212,42
+src/Contract/Escrow.hs:212,48-212,81
+src/Contract/Escrow.hs:212,61-212,80
+src/Contract/Escrow.hs:212,82-212,95
+src/Contract/Escrow.hs:214,26-214,49
+src/Contract/Escrow.hs:214,51-214,71
+src/Contract/Escrow.hs:214,52-214,66
+src/Contract/Escrow.hs:214,69-214,70
+src/Contract/Escrow.hs:214,81-214,117
+src/Contract/Escrow.hs:214,13-215,108
+src/Contract/Escrow.hs:215,16-215,108
+src/Contract/Escrow.hs:215,29-215,41
+src/Contract/Escrow.hs:215,43-215,62
+src/Contract/Escrow.hs:215,76-215,107
+src/Contract/Escrow.hs:381,23-381,56
+src/Contract/Escrow.hs:198,9-198,59 = False
+src/Contract/Escrow.hs:198,9-198,59 = True
+src/Contract/Escrow.hs:202,57-202,84 = False
+src/Contract/Escrow.hs:202,57-202,84 = True
+src/Contract/Escrow.hs:203,20-203,55 = False
+src/Contract/Escrow.hs:203,20-203,55 = True
+src/Contract/Escrow.hs:212,16-212,96 = False
+src/Contract/Escrow.hs:212,16-212,96 = True
+src/Contract/Escrow.hs:214,13-215,108 = False
+src/Contract/Escrow.hs:214,13-215,108 = True
+src/Contract/Escrow.hs:215,16-215,108 = False
+src/Contract/Escrow.hs:215,16-215,108 = True
+=========[IGNORED]==========
+*** Failed! Falsified (after 1 test):
+do _ <- forAllQ $ exactlyQ $ 16
+   action $ Pay (Wallet 1) 16
+   action $ Pay (Wallet 2) 16
+   action $ Pay (Wallet 3) 16
+   action $ Redeem (Wallet 4)
+   pure ()
+
+Balance changes don't match:
+  Predicted symbolic balance changes:
+    Wallet 3: {-16000000 Lovelace}
+    Wallet 4: {18000000 Lovelace}
+    Wallet 2: {4000000 Lovelace}
+    Wallet 1: {-6000000 Lovelace}
+  Predicted actual balance changes:
+    Wallet 3: {-16000000 Lovelace}
+    Wallet 4: {18000000 Lovelace}
+    Wallet 2: {4000000 Lovelace}
+    Wallet 1: {-6000000 Lovelace}
+  Actual balance changes:
+    Wallet 3: {-16000000 Lovelace}
+    Wallet 2: {-16000000 Lovelace}
+    Wallet 1: {-16000000 Lovelace}
+  Sum of min Lovelace: Lovelace 5676270
+=========[COVERED]==========
+========[UNCOVERED]=========
+src/Contract/Escrow.hs:196,1-204,23
+src/Contract/Escrow.hs:198,9-198,50
+src/Contract/Escrow.hs:198,9-198,59
+src/Contract/Escrow.hs:198,21-198,24
+src/Contract/Escrow.hs:198,25-198,50
+src/Contract/Escrow.hs:198,57-198,59
+src/Contract/Escrow.hs:200,30-200,43
+src/Contract/Escrow.hs:200,44-200,47
+src/Contract/Escrow.hs:200,9-204,23
+src/Contract/Escrow.hs:202,30-202,41
+src/Contract/Escrow.hs:202,57-202,84
+src/Contract/Escrow.hs:202,74-202,83
+src/Contract/Escrow.hs:202,17-203,55
+src/Contract/Escrow.hs:203,20-203,55
+src/Contract/Escrow.hs:203,33-203,40
+src/Contract/Escrow.hs:203,42-203,45
+src/Contract/Escrow.hs:203,52-203,54
+src/Contract/Escrow.hs:204,18-204,23
+src/Contract/Escrow.hs:208,1-215,108
+src/Contract/Escrow.hs:209,5-215,108
+src/Contract/Escrow.hs:211,26-211,48
+src/Contract/Escrow.hs:211,50-211,64
+src/Contract/Escrow.hs:211,13-212,96
+src/Contract/Escrow.hs:212,16-212,96
+src/Contract/Escrow.hs:212,29-212,42
+src/Contract/Escrow.hs:212,48-212,81
+src/Contract/Escrow.hs:212,61-212,80
+src/Contract/Escrow.hs:212,82-212,95
+src/Contract/Escrow.hs:214,26-214,49
+src/Contract/Escrow.hs:214,51-214,71
+src/Contract/Escrow.hs:214,52-214,66
+src/Contract/Escrow.hs:214,69-214,70
+src/Contract/Escrow.hs:214,81-214,117
+src/Contract/Escrow.hs:214,13-215,108
+src/Contract/Escrow.hs:215,16-215,108
+src/Contract/Escrow.hs:215,29-215,41
+src/Contract/Escrow.hs:215,43-215,62
+src/Contract/Escrow.hs:215,76-215,107
+src/Contract/Escrow.hs:381,23-381,56
+src/Contract/Escrow.hs:198,9-198,59 = False
+src/Contract/Escrow.hs:198,9-198,59 = True
+src/Contract/Escrow.hs:202,57-202,84 = False
+src/Contract/Escrow.hs:202,57-202,84 = True
+src/Contract/Escrow.hs:203,20-203,55 = False
+src/Contract/Escrow.hs:203,20-203,55 = True
+src/Contract/Escrow.hs:212,16-212,96 = False
+src/Contract/Escrow.hs:212,16-212,96 = True
+src/Contract/Escrow.hs:214,13-215,108 = False
+src/Contract/Escrow.hs:214,13-215,108 = True
+src/Contract/Escrow.hs:215,16-215,108 = False
+src/Contract/Escrow.hs:215,16-215,108 = True
+=========[IGNORED]==========
++++ OK, passed 100 tests.
+
+Actions (300 in total):
+33.3% Pay
+33.3% Refund
+33.3% WaitUntil
+
+Wait interval (100 in total):
+100% 90-99
+
+Wait until (100 in total):
+100% 100-199
+=========[COVERED]==========
+========[UNCOVERED]=========
+src/Contract/Escrow.hs:196,1-204,23
+src/Contract/Escrow.hs:198,9-198,50
+src/Contract/Escrow.hs:198,9-198,59
+src/Contract/Escrow.hs:198,21-198,24
+src/Contract/Escrow.hs:198,25-198,50
+src/Contract/Escrow.hs:198,57-198,59
+src/Contract/Escrow.hs:200,30-200,43
+src/Contract/Escrow.hs:200,44-200,47
+src/Contract/Escrow.hs:200,9-204,23
+src/Contract/Escrow.hs:202,30-202,41
+src/Contract/Escrow.hs:202,57-202,84
+src/Contract/Escrow.hs:202,74-202,83
+src/Contract/Escrow.hs:202,17-203,55
+src/Contract/Escrow.hs:203,20-203,55
+src/Contract/Escrow.hs:203,33-203,40
+src/Contract/Escrow.hs:203,42-203,45
+src/Contract/Escrow.hs:203,52-203,54
+src/Contract/Escrow.hs:204,18-204,23
+src/Contract/Escrow.hs:208,1-215,108
+src/Contract/Escrow.hs:209,5-215,108
+src/Contract/Escrow.hs:211,26-211,48
+src/Contract/Escrow.hs:211,50-211,64
+src/Contract/Escrow.hs:211,13-212,96
+src/Contract/Escrow.hs:212,16-212,96
+src/Contract/Escrow.hs:212,29-212,42
+src/Contract/Escrow.hs:212,48-212,81
+src/Contract/Escrow.hs:212,61-212,80
+src/Contract/Escrow.hs:212,82-212,95
+src/Contract/Escrow.hs:214,26-214,49
+src/Contract/Escrow.hs:214,51-214,71
+src/Contract/Escrow.hs:214,52-214,66
+src/Contract/Escrow.hs:214,69-214,70
+src/Contract/Escrow.hs:214,81-214,117
+src/Contract/Escrow.hs:214,13-215,108
+src/Contract/Escrow.hs:215,16-215,108
+src/Contract/Escrow.hs:215,29-215,41
+src/Contract/Escrow.hs:215,43-215,62
+src/Contract/Escrow.hs:215,76-215,107
+src/Contract/Escrow.hs:381,23-381,56
+src/Contract/Escrow.hs:198,9-198,59 = False
+src/Contract/Escrow.hs:198,9-198,59 = True
+src/Contract/Escrow.hs:202,57-202,84 = False
+src/Contract/Escrow.hs:202,57-202,84 = True
+src/Contract/Escrow.hs:203,20-203,55 = False
+src/Contract/Escrow.hs:203,20-203,55 = True
+src/Contract/Escrow.hs:212,16-212,96 = False
+src/Contract/Escrow.hs:212,16-212,96 = True
+src/Contract/Escrow.hs:214,13-215,108 = False
+src/Contract/Escrow.hs:214,13-215,108 = True
+src/Contract/Escrow.hs:215,16-215,108 = False
+src/Contract/Escrow.hs:215,16-215,108 = True
+=========[IGNORED]==========
+CertificationReport {_certRes_standardPropertyResult = Failure {numTests = 9, numDiscarded = 0, numShrinks = 2, numShrinkTries = 5, numShrinkFinal = 7, usedSeed = SMGen 14188464869773225120 17931612603328255887, usedSize = 8, reason = "Falsified", theException = Nothing, output = "*** Failed! Falsified (after 9 tests and 2 shrinks):\nActions \n [Pay (Wallet 2) 27,\n  Pay (Wallet 4) 22,\n  Redeem (Wallet 5)]\nBalance changes don't match:\n  Predicted symbolic balance changes:\n    Wallet 4: {-22000000 Lovelace}\n    Wallet 2: {-7000000 Lovelace}\n    Wallet 1: {10000000 Lovelace}\n    Wallet 5: {19000000 Lovelace}\n  Predicted actual balance changes:\n    Wallet 4: {-22000000 Lovelace}\n    Wallet 2: {-7000000 Lovelace}\n    Wallet 1: {10000000 Lovelace}\n    Wallet 5: {19000000 Lovelace}\n  Actual balance changes:\n    Wallet 4: {-22000000 Lovelace}\n    Wallet 2: {-27000000 Lovelace}\n  Sum of min Lovelace: Lovelace 3784180\n", failingTestCase = ["Actions \n [Pay (Wallet 2) 27,\n  Pay (Wallet 4) 22,\n  Redeem (Wallet 5)]","Balance changes don't match:\n  Predicted symbolic balance changes:\n    Wallet 4: {-22000000 Lovelace}\n    Wallet 2: {-7000000 Lovelace}\n    Wallet 1: {10000000 Lovelace}\n    Wallet 5: {19000000 Lovelace}\n  Predicted actual balance changes:\n    Wallet 4: {-22000000 Lovelace}\n    Wallet 2: {-7000000 Lovelace}\n    Wallet 1: {10000000 Lovelace}\n    Wallet 5: {19000000 Lovelace}\n  Actual balance changes:\n    Wallet 4: {-22000000 Lovelace}\n    Wallet 2: {-27000000 Lovelace}\n  Sum of min Lovelace: Lovelace 3784180"], failingLabels = [], failingClasses = fromList ["Contains Redeem","Redeemable"]}, _certRes_noLockedFundsResult = Just (Failure {numTests = 1, numDiscarded = 0, numShrinks = 0, numShrinkTries = 0, numShrinkFinal = 2, usedSeed = SMGen 2088937666614938734 8501852076331960525, usedSize = 0, reason = "Falsified", theException = Nothing, output = "*** Failed! Falsified (after 1 test):\ndo action $ Pay (Wallet 4) 20\n   pure ()\n\ndo action $ WaitUntil (SlotNo 41)\n   action $ Refund (Wallet 4)\n   pure ()\n\nMain strategy\nActions \n [Pay (Wallet 4) 20,\n  WaitUntil (SlotNo 41),\n  Refund (Wallet 4)]\nLocked funds should be at most SymValue {symValMap = fromList [], actualValPart = valueFromList []}, but they are\n  SymValue {symValMap = fromList [], actualValPart = valueFromList [(AdaAssetId,20000000)]}\n", failingTestCase = ["do action $ Pay (Wallet 4) 20\n   pure ()\n","do action $ WaitUntil (SlotNo 41)\n   action $ Refund (Wallet 4)\n   pure ()\n","Main strategy","Actions \n [Pay (Wallet 4) 20,\n  WaitUntil (SlotNo 41),\n  Refund (Wallet 4)]","Locked funds should be at most SymValue {symValMap = fromList [], actualValPart = valueFromList []}, but they are\n  SymValue {symValMap = fromList [], actualValPart = valueFromList [(AdaAssetId,20000000)]}"], failingLabels = [], failingClasses = fromList []}), _certRes_noLockedFundsLightResult = Nothing, _certRes_standardCrashToleranceResult = Just (Failure {numTests = 13, numDiscarded = 0, numShrinks = 3, numShrinkTries = 7, numShrinkFinal = 5, usedSeed = SMGen 14168997289125932126 8510782591601082357, usedSize = 12, reason = "Falsified", theException = Nothing, output = "*** Failed! Falsified (after 13 tests and 3 shrinks):\nActions \n [Pay (Wallet 3) 30,\n  Redeem (Wallet 3)]\nBalance changes don't match:\n  Predicted symbolic balance changes:\n    Wallet 3: {-30000000 Lovelace}\n    Wallet 2: {20000000 Lovelace}\n    Wallet 1: {10000000 Lovelace}\n  Predicted actual balance changes:\n    Wallet 3: {-30000000 Lovelace}\n    Wallet 2: {20000000 Lovelace}\n    Wallet 1: {10000000 Lovelace}\n  Actual balance changes: Wallet 3: {-30000000 Lovelace}\n  Sum of min Lovelace: Lovelace 1892090\n", failingTestCase = ["Actions \n [Pay (Wallet 3) 30,\n  Redeem (Wallet 3)]","Balance changes don't match:\n  Predicted symbolic balance changes:\n    Wallet 3: {-30000000 Lovelace}\n    Wallet 2: {20000000 Lovelace}\n    Wallet 1: {10000000 Lovelace}\n  Predicted actual balance changes:\n    Wallet 3: {-30000000 Lovelace}\n    Wallet 2: {20000000 Lovelace}\n    Wallet 1: {10000000 Lovelace}\n  Actual balance changes: Wallet 3: {-30000000 Lovelace}\n  Sum of min Lovelace: Lovelace 1892090"], failingLabels = [], failingClasses = fromList ["Contains Redeem","Redeemable"]}), _certRes_unitTestResults = [Result {resultOutcome = Success, resultDescription = "", resultShortDescription = "OK", resultTime = 7.807899988256395e-2, resultDetailsPrinter = ResultDetailsPrinter},Result {resultOutcome = Success, resultDescription = "", resultShortDescription = "OK", resultTime = 0.10231200000271201, resultDetailsPrinter = ResultDetailsPrinter},Result {resultOutcome = Success, resultDescription = "", resultShortDescription = "OK", resultTime = 7.425699988380075e-2, resultDetailsPrinter = ResultDetailsPrinter},Result {resultOutcome = Success, resultDescription = "", resultShortDescription = "OK", resultTime = 0.15656300005503, resultDetailsPrinter = ResultDetailsPrinter},Result {resultOutcome = Success, resultDescription = "Script size: 5311\n", resultShortDescription = "OK", resultTime = 6.392000010237098e-3, resultDetailsPrinter = ResultDetailsPrinter},Result {resultOutcome = Failure TestFailed, resultDescription = "*** Failed! Falsified (after 19 tests and 14 shrinks):\nActions \n [Pay (Wallet 4) 28,\n  WaitUntil (SlotNo 40),\n  Refund (Wallet 4)]\nBalance changes don't match:\n  Predicted symbolic balance changes: Wallet 4: {-28000000 Lovelace}\n  Predicted actual balance changes: Wallet 4: {-28000000 Lovelace}\n  Actual balance changes: Wallet 4: {}\n  Sum of min Lovelace: Lovelace 2749780\nUse --quickcheck-replay=852696 to reproduce.", resultShortDescription = "FAIL", resultTime = 7.024473000084981, resultDetailsPrinter = ResultDetailsPrinter},Result {resultOutcome = Failure TestFailed, resultDescription = "*** Failed! Falsified (after 1 test):\ndo action $ Pay (Wallet 1) 23\n   pure ()\n\ndo action $ WaitUntil (SlotNo 41)\n   action $ Refund (Wallet 1)\n   pure ()\n\nMain run prop\nBalance changes don't match:\n  Predicted symbolic balance changes: Wallet 1: {-23000000 Lovelace}\n  Predicted actual balance changes: Wallet 1: {-23000000 Lovelace}\n  Actual balance changes: Wallet 1: {}\n  Sum of min Lovelace: Lovelace 2749780\nUse --quickcheck-replay=33584 to reproduce.", resultShortDescription = "FAIL", resultTime = 0.19130300008691847, resultDetailsPrinter = ResultDetailsPrinter},Result {resultOutcome = Success, resultDescription = "+++ OK, passed 30 tests; 47 discarded:\n100% Redeemable\n97% Contains Redeem\n\nActions (370 in total):\n48.9% Pay\n19.5% BadRefund\n15.7% WaitUntil\n14.3% Redeem\n 1.6% Refund\n\nActions rejected by precondition (165 in total):\n77.0% Redeem\n 9.1% BadRefund\n 7.9% Refund\n 6.1% Pay\n\nBad refund attempts (72 in total):\n94% steal refund\n 6% early refund\n\nWait interval (58 in total):\n62% <10\n33% 10-19\n 5% 20-29\n\nWait until (58 in total):\n22% 10-19\n19% 20-29\n16% <10\n12% 30-39\n 9% 40-49\n 7% 100-199\n 7% 200-299\n 3% 50-59\n 3% 90-99\n 2% 70-79\n", resultShortDescription = "OK", resultTime = 10.765137000009418, resultDetailsPrinter = ResultDetailsPrinter}], _certRes_coverageReport = CoverageReport {_coverageIndex = CoverageIndex {_coverageMetadata = fromList [(CoverLocation (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 196, _covLocEndLine = 204, _covLocStartCol = 1, _covLocEndCol = 23}),CoverageMetadata {_metadataSet = fromList []}),(CoverLocation (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 198, _covLocEndLine = 198, _covLocStartCol = 9, _covLocEndCol = 50}),CoverageMetadata {_metadataSet = fromList []}),(CoverLocation (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 198, _covLocEndLine = 198, _covLocStartCol = 9, _covLocEndCol = 59}),CoverageMetadata {_metadataSet = fromList []}),(CoverLocation (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 198, _covLocEndLine = 198, _covLocStartCol = 21, _covLocEndCol = 24}),CoverageMetadata {_metadataSet = fromList []}),(CoverLocation (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 198, _covLocEndLine = 198, _covLocStartCol = 25, _covLocEndCol = 50}),CoverageMetadata {_metadataSet = fromList []}),(CoverLocation (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 198, _covLocEndLine = 198, _covLocStartCol = 57, _covLocEndCol = 59}),CoverageMetadata {_metadataSet = fromList []}),(CoverLocation (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 200, _covLocEndLine = 200, _covLocStartCol = 30, _covLocEndCol = 43}),CoverageMetadata {_metadataSet = fromList []}),(CoverLocation (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 200, _covLocEndLine = 200, _covLocStartCol = 44, _covLocEndCol = 47}),CoverageMetadata {_metadataSet = fromList []}),(CoverLocation (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 200, _covLocEndLine = 204, _covLocStartCol = 9, _covLocEndCol = 23}),CoverageMetadata {_metadataSet = fromList []}),(CoverLocation (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 202, _covLocEndLine = 202, _covLocStartCol = 30, _covLocEndCol = 41}),CoverageMetadata {_metadataSet = fromList []}),(CoverLocation (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 202, _covLocEndLine = 202, _covLocStartCol = 57, _covLocEndCol = 84}),CoverageMetadata {_metadataSet = fromList []}),(CoverLocation (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 202, _covLocEndLine = 202, _covLocStartCol = 74, _covLocEndCol = 83}),CoverageMetadata {_metadataSet = fromList []}),(CoverLocation (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 202, _covLocEndLine = 203, _covLocStartCol = 17, _covLocEndCol = 55}),CoverageMetadata {_metadataSet = fromList []}),(CoverLocation (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 203, _covLocEndLine = 203, _covLocStartCol = 20, _covLocEndCol = 55}),CoverageMetadata {_metadataSet = fromList []}),(CoverLocation (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 203, _covLocEndLine = 203, _covLocStartCol = 33, _covLocEndCol = 40}),CoverageMetadata {_metadataSet = fromList []}),(CoverLocation (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 203, _covLocEndLine = 203, _covLocStartCol = 42, _covLocEndCol = 45}),CoverageMetadata {_metadataSet = fromList []}),(CoverLocation (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 203, _covLocEndLine = 203, _covLocStartCol = 52, _covLocEndCol = 54}),CoverageMetadata {_metadataSet = fromList []}),(CoverLocation (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 204, _covLocEndLine = 204, _covLocStartCol = 18, _covLocEndCol = 23}),CoverageMetadata {_metadataSet = fromList []}),(CoverLocation (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 208, _covLocEndLine = 215, _covLocStartCol = 1, _covLocEndCol = 108}),CoverageMetadata {_metadataSet = fromList []}),(CoverLocation (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 209, _covLocEndLine = 215, _covLocStartCol = 5, _covLocEndCol = 108}),CoverageMetadata {_metadataSet = fromList []}),(CoverLocation (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 211, _covLocEndLine = 211, _covLocStartCol = 26, _covLocEndCol = 48}),CoverageMetadata {_metadataSet = fromList []}),(CoverLocation (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 211, _covLocEndLine = 211, _covLocStartCol = 50, _covLocEndCol = 64}),CoverageMetadata {_metadataSet = fromList []}),(CoverLocation (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 211, _covLocEndLine = 212, _covLocStartCol = 13, _covLocEndCol = 96}),CoverageMetadata {_metadataSet = fromList []}),(CoverLocation (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 212, _covLocEndLine = 212, _covLocStartCol = 16, _covLocEndCol = 96}),CoverageMetadata {_metadataSet = fromList []}),(CoverLocation (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 212, _covLocEndLine = 212, _covLocStartCol = 29, _covLocEndCol = 42}),CoverageMetadata {_metadataSet = fromList []}),(CoverLocation (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 212, _covLocEndLine = 212, _covLocStartCol = 48, _covLocEndCol = 81}),CoverageMetadata {_metadataSet = fromList []}),(CoverLocation (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 212, _covLocEndLine = 212, _covLocStartCol = 61, _covLocEndCol = 80}),CoverageMetadata {_metadataSet = fromList []}),(CoverLocation (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 212, _covLocEndLine = 212, _covLocStartCol = 82, _covLocEndCol = 95}),CoverageMetadata {_metadataSet = fromList []}),(CoverLocation (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 214, _covLocEndLine = 214, _covLocStartCol = 26, _covLocEndCol = 49}),CoverageMetadata {_metadataSet = fromList []}),(CoverLocation (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 214, _covLocEndLine = 214, _covLocStartCol = 51, _covLocEndCol = 71}),CoverageMetadata {_metadataSet = fromList []}),(CoverLocation (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 214, _covLocEndLine = 214, _covLocStartCol = 52, _covLocEndCol = 66}),CoverageMetadata {_metadataSet = fromList []}),(CoverLocation (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 214, _covLocEndLine = 214, _covLocStartCol = 69, _covLocEndCol = 70}),CoverageMetadata {_metadataSet = fromList []}),(CoverLocation (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 214, _covLocEndLine = 214, _covLocStartCol = 81, _covLocEndCol = 117}),CoverageMetadata {_metadataSet = fromList []}),(CoverLocation (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 214, _covLocEndLine = 215, _covLocStartCol = 13, _covLocEndCol = 108}),CoverageMetadata {_metadataSet = fromList []}),(CoverLocation (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 215, _covLocEndLine = 215, _covLocStartCol = 16, _covLocEndCol = 108}),CoverageMetadata {_metadataSet = fromList []}),(CoverLocation (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 215, _covLocEndLine = 215, _covLocStartCol = 29, _covLocEndCol = 41}),CoverageMetadata {_metadataSet = fromList []}),(CoverLocation (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 215, _covLocEndLine = 215, _covLocStartCol = 43, _covLocEndCol = 62}),CoverageMetadata {_metadataSet = fromList []}),(CoverLocation (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 215, _covLocEndLine = 215, _covLocStartCol = 76, _covLocEndCol = 107}),CoverageMetadata {_metadataSet = fromList []}),(CoverLocation (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 381, _covLocEndLine = 381, _covLocStartCol = 23, _covLocEndCol = 56}),CoverageMetadata {_metadataSet = fromList []}),(CoverBool (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 198, _covLocEndLine = 198, _covLocStartCol = 9, _covLocEndCol = 59}) False,CoverageMetadata {_metadataSet = fromList [ApplicationHeadSymbol "checkBinRel"]}),(CoverBool (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 198, _covLocEndLine = 198, _covLocStartCol = 9, _covLocEndCol = 59}) True,CoverageMetadata {_metadataSet = fromList [ApplicationHeadSymbol "checkBinRel"]}),(CoverBool (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 202, _covLocEndLine = 202, _covLocStartCol = 57, _covLocEndCol = 84}) False,CoverageMetadata {_metadataSet = fromList [ApplicationHeadSymbol "equalsByteString"]}),(CoverBool (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 202, _covLocEndLine = 202, _covLocStartCol = 57, _covLocEndCol = 84}) True,CoverageMetadata {_metadataSet = fromList [ApplicationHeadSymbol "equalsByteString"]}),(CoverBool (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 203, _covLocEndLine = 203, _covLocStartCol = 20, _covLocEndCol = 55}) False,CoverageMetadata {_metadataSet = fromList [ApplicationHeadSymbol "checkBinRel"]}),(CoverBool (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 203, _covLocEndLine = 203, _covLocStartCol = 20, _covLocEndCol = 55}) True,CoverageMetadata {_metadataSet = fromList [ApplicationHeadSymbol "checkBinRel"]}),(CoverBool (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 212, _covLocEndLine = 212, _covLocStartCol = 16, _covLocEndCol = 96}) False,CoverageMetadata {_metadataSet = fromList [ApplicationHeadSymbol "$fFoldable[]_$cfoldMap"]}),(CoverBool (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 212, _covLocEndLine = 212, _covLocStartCol = 16, _covLocEndCol = 96}) True,CoverageMetadata {_metadataSet = fromList [ApplicationHeadSymbol "$fFoldable[]_$cfoldMap"]}),(CoverBool (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 214, _covLocEndLine = 215, _covLocStartCol = 13, _covLocEndCol = 108}) False,CoverageMetadata {_metadataSet = fromList [ApplicationHeadSymbol "before"]}),(CoverBool (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 214, _covLocEndLine = 215, _covLocStartCol = 13, _covLocEndCol = 108}) True,CoverageMetadata {_metadataSet = fromList [ApplicationHeadSymbol "before"]}),(CoverBool (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 215, _covLocEndLine = 215, _covLocStartCol = 16, _covLocEndCol = 108}) False,CoverageMetadata {_metadataSet = fromList [ApplicationHeadSymbol "txSignedBy"]}),(CoverBool (CovLoc {_covLocFile = "src/Contract/Escrow.hs", _covLocStartLine = 215, _covLocEndLine = 215, _covLocStartCol = 16, _covLocEndCol = 108}) True,CoverageMetadata {_metadataSet = fromList [ApplicationHeadSymbol "txSignedBy"]})]}, _coverageData = CoverageData {_coveredAnnotations = fromList []}}, _certRes_whitelistOk = Just True, _certRes_whitelistResult = Just (Failure {numTests = 8, numDiscarded = 0, numShrinks = 1, numShrinkTries = 4, numShrinkFinal = 7, usedSeed = SMGen 17815605262500557376 8710343820369561889, usedSize = 7, reason = "Assertion failed", theException = Nothing, output = "*** Failed! Assertion failed (after 8 tests and 1 shrink):\nActions \n [Pay (Wallet 3) 16,\n  Pay (Wallet 5) 21,\n  Redeem (Wallet 2)]\nTransactions failed to validate:\na8aadfebb9882d2181fbedaf79816041c64a52b1eb0f1b972fbbb10a34d0339f: CardanoLedgerValidationError \"ApplyTxError [UtxowFailure (UtxoFailure (FromAlonzoUtxoFail (MaxTxSizeUTxO 17999 16384)))]\"\nTest failed.\nEmulator log:\n[INFO] Slot 0: TxnValidate 4b3900ad38e0dcf405aa8aef875600a50f7d63a6fa78b899f5345aba6b585a07 [  ]\n[INFO] Slot 1: 00000000-0000-4000-8000-000000000000 {Wallet W[1]}:\n                 Contract instance started\n[INFO] Slot 1: 00000000-0000-4000-8000-000000000001 {Wallet W[2]}:\n                 Contract instance started\n[INFO] Slot 1: 00000000-0000-4000-8000-000000000002 {Wallet W[3]}:\n                 Contract instance started\n[INFO] Slot 1: 00000000-0000-4000-8000-000000000003 {Wallet W[4]}:\n                 Contract instance started\n[INFO] Slot 1: 00000000-0000-4000-8000-000000000004 {Wallet W[5]}:\n                 Contract instance started\n[INFO] Slot 1: 00000000-0000-4000-8000-000000000002 {Wallet W[3]}:\n                 Receive endpoint call on 'pay-escrow' for Object (fromList [(\"contents\",Array [Object (fromList [(\"getEndpointDescription\",String \"pay-escrow\")]),Object (fromList [(\"unEndpointValue\",Object (fromList [(\"getValue\",Array [Array [Object (fromList [(\"unCurrencySymbol\",String \"\")]),Array [Array [Object (fromList [(\"unTokenName\",String \"\")]),Number 1.6e7]]]])]))])]),(\"tag\",String \"ExposeEndpointResp\")])\n[INFO] Slot 1: W[3]: Balancing an unbalanced transaction:\n                       Tx 4bbbb856a9ecc96e1e477e818e3e9d2bb8f1cf539ea37b5eaad67d3332697320:\n                         inputs:\n                         reference inputs:\n                         collateral inputs:\n                         outputs:\n                           - 16000000 lovelace addressed to\n                             ScriptCredential: 8a3ecdafa6b25102dd579b8936b45d7c45837ffe6b022f11916aa5a6 (no staking credential)\n                             with datum in tx ScriptDataBytes \".\\n\\214\\f2\\a$\\140\\236\\212}\\189\\227\\215R\\224\\170\\209A\\214\\184\\248\\SUB\\194\\198\\236\\162|\"\n                         mint: \n                         fee: 0 lovelace\n                         validity range: Interval {ivFrom = LowerBound (Finite (Slot {getSlot = 0})) True, ivTo = UpperBound (Finite (Slot {getSlot = 40})) False}\n                         data:\n                           ( 2cc2afd267462229babbc139837611310e4307bd6c7e870049c22fb02c2ad122\n                           , \".\\n\\214\\f2\\a$\\140\\236\\212}\\189\\227\\215R\\224\\170\\209A\\214\\184\\248\\SUB\\194\\198\\236\\162|\" )\n                         redeemers:\n                       Utxo index:\n[INFO] Slot 1: W[3]: Finished balancing:\n                       Tx 577c0fbc8183b218791a85aba2fd13d826b918aae150f7e85c315910e9e9892a:\n                         inputs:\n                           - 4b3900ad38e0dcf405aa8aef875600a50f7d63a6fa78b899f5345aba6b585a07!0\n                         reference inputs:\n                         collateral inputs:\n                         outputs:\n                           - 16000000 lovelace addressed to\n                             ScriptCredential: 8a3ecdafa6b25102dd579b8936b45d7c45837ffe6b022f11916aa5a6 (no staking credential)\n                             with datum in tx ScriptDataBytes \".\\n\\214\\f2\\a$\\140\\236\\212}\\189\\227\\215R\\224\\170\\209A\\214\\184\\248\\SUB\\194\\198\\236\\162|\"\n                           - 9999999983829483 lovelace addressed to\n                             PubKeyCredential: 2e0ad60c3207248cecd47dbde3d752e0aad141d6b8f81ac2c6eca27c (no staking credential)\n                         mint: \n                         fee: 170517 lovelace\n                         validity range: Interval {ivFrom = LowerBound (Finite (Slot {getSlot = 0})) True, ivTo = UpperBound (Finite (Slot {getSlot = 40})) False}\n                         data:\n                           ( 2cc2afd267462229babbc139837611310e4307bd6c7e870049c22fb02c2ad122\n                           , \".\\n\\214\\f2\\a$\\140\\236\\212}\\189\\227\\215R\\224\\170\\209A\\214\\184\\248\\SUB\\194\\198\\236\\162|\" )\n                         redeemers:\n[INFO] Slot 1: W[3]: Signing tx: 577c0fbc8183b218791a85aba2fd13d826b918aae150f7e85c315910e9e9892a\n[INFO] Slot 1: W[3]: Submitting tx: 577c0fbc8183b218791a85aba2fd13d826b918aae150f7e85c315910e9e9892a\n[INFO] Slot 1: W[3]: TxSubmit: 577c0fbc8183b218791a85aba2fd13d826b918aae150f7e85c315910e9e9892a\n[INFO] Slot 1: TxnValidate 577c0fbc8183b218791a85aba2fd13d826b918aae150f7e85c315910e9e9892a [  ]\n[INFO] Slot 2: 00000000-0000-4000-8000-000000000004 {Wallet W[5]}:\n                 Receive endpoint call on 'pay-escrow' for Object (fromList [(\"contents\",Array [Object (fromList [(\"getEndpointDescription\",String \"pay-escrow\")]),Object (fromList [(\"unEndpointValue\",Object (fromList [(\"getValue\",Array [Array [Object (fromList [(\"unCurrencySymbol\",String \"\")]),Array [Array [Object (fromList [(\"unTokenName\",String \"\")]),Number 2.1e7]]]])]))])]),(\"tag\",String \"ExposeEndpointResp\")])\n[INFO] Slot 2: W[5]: Balancing an unbalanced transaction:\n                       Tx b747d2c538c99b571ab5abc3cddf51d91ebcd1c1cdab25f8bd75b0dfe07649a8:\n                         inputs:\n                         reference inputs:\n                         collateral inputs:\n                         outputs:\n                           - 21000000 lovelace addressed to\n                             ScriptCredential: 8a3ecdafa6b25102dd579b8936b45d7c45837ffe6b022f11916aa5a6 (no staking credential)\n                             with datum in tx ScriptDataBytes \"\\191\\&4-\\221;\\SUBa\\145\\212\\206\\147l\\146\\210\\152\\&4\\214\\135\\158\\223(I\\234\\234\\132\\200'\\248\"\n                         mint: \n                         fee: 0 lovelace\n                         validity range: Interval {ivFrom = LowerBound (Finite (Slot {getSlot = 0})) True, ivTo = UpperBound (Finite (Slot {getSlot = 40})) False}\n                         data:\n                           ( e7347ec268e4a077280db2be5224822e7366cd061db0fd8e2cda0c72e1a3e503\n                           , \"\\191\\&4-\\221;\\SUBa\\145\\212\\206\\147l\\146\\210\\152\\&4\\214\\135\\158\\223(I\\234\\234\\132\\200'\\248\" )\n                         redeemers:\n                       Utxo index:\n[INFO] Slot 2: W[5]: Finished balancing:\n                       Tx 2fbb27714ca8227f4a97abf65e38ad422638884d6105066fdf7dc713889a4e1d:\n                         inputs:\n                           - 4b3900ad38e0dcf405aa8aef875600a50f7d63a6fa78b899f5345aba6b585a07!70\n                         reference inputs:\n                         collateral inputs:\n                         outputs:\n                           - 21000000 lovelace addressed to\n                             ScriptCredential: 8a3ecdafa6b25102dd579b8936b45d7c45837ffe6b022f11916aa5a6 (no staking credential)\n                             with datum in tx ScriptDataBytes \"\\191\\&4-\\221;\\SUBa\\145\\212\\206\\147l\\146\\210\\152\\&4\\214\\135\\158\\223(I\\234\\234\\132\\200'\\248\"\n                           - 9999999978829439 lovelace addressed to\n                             PubKeyCredential: bf342ddd3b1a6191d4ce936c92d29834d6879edf2849eaea84c827f8 (no staking credential)\n                         mint: \n                         fee: 170561 lovelace\n                         validity range: Interval {ivFrom = LowerBound (Finite (Slot {getSlot = 0})) True, ivTo = UpperBound (Finite (Slot {getSlot = 40})) False}\n                         data:\n                           ( e7347ec268e4a077280db2be5224822e7366cd061db0fd8e2cda0c72e1a3e503\n                           , \"\\191\\&4-\\221;\\SUBa\\145\\212\\206\\147l\\146\\210\\152\\&4\\214\\135\\158\\223(I\\234\\234\\132\\200'\\248\" )\n                         redeemers:\n[INFO] Slot 2: W[5]: Signing tx: 2fbb27714ca8227f4a97abf65e38ad422638884d6105066fdf7dc713889a4e1d\n[INFO] Slot 2: W[5]: Submitting tx: 2fbb27714ca8227f4a97abf65e38ad422638884d6105066fdf7dc713889a4e1d\n[INFO] Slot 2: W[5]: TxSubmit: 2fbb27714ca8227f4a97abf65e38ad422638884d6105066fdf7dc713889a4e1d\n[INFO] Slot 2: TxnValidate 2fbb27714ca8227f4a97abf65e38ad422638884d6105066fdf7dc713889a4e1d [  ]\n[INFO] Slot 3: 00000000-0000-4000-8000-000000000001 {Wallet W[2]}:\n                 Receive endpoint call on 'redeem-escrow' for Object (fromList [(\"contents\",Array [Object (fromList [(\"getEndpointDescription\",String \"redeem-escrow\")]),Object (fromList [(\"unEndpointValue\",Array [])])]),(\"tag\",String \"ExposeEndpointResp\")])\n[INFO] Slot 3: W[2]: Balancing an unbalanced transaction:\n                       Tx 53b10a8c4a5e15374df16323d91705855a4b90214731e0b3c887d37a9397af8c:\n                         inputs:\n                           - 2fbb27714ca8227f4a97abf65e38ad422638884d6105066fdf7dc713889a4e1d!0\n                           - 577c0fbc8183b218791a85aba2fd13d826b918aae150f7e85c315910e9e9892a!0\n                         reference inputs:\n                         collateral inputs:\n                         outputs:\n                           - 10000000 lovelace addressed to\n                             PubKeyCredential: a2c20c77887ace1cd986193e4e75babd8993cfd56995cd5cfce609c2 (no staking credential)\n                           - 20000000 lovelace addressed to\n                             PubKeyCredential: 80a4f45b56b88d1139da23bc4c3c75ec6d32943c087f250b86193ca7 (no staking credential)\n                         mint: \n                         fee: 0 lovelace\n                         validity range: Interval {ivFrom = LowerBound NegInf True, ivTo = UpperBound (Finite (Slot {getSlot = 39})) False}\n                         data:\n                           ( 2cc2afd267462229babbc139837611310e4307bd6c7e870049c22fb02c2ad122\n                           , \".\\n\\214\\f2\\a$\\140\\236\\212}\\189\\227\\215R\\224\\170\\209A\\214\\184\\248\\SUB\\194\\198\\236\\162|\" )\n                           ( e7347ec268e4a077280db2be5224822e7366cd061db0fd8e2cda0c72e1a3e503\n                           , \"\\191\\&4-\\221;\\SUBa\\145\\212\\206\\147l\\146\\210\\152\\&4\\214\\135\\158\\223(I\\234\\234\\132\\200'\\248\" )\n                         redeemers:\n                           RedeemerPtr Spend 0 : Constr 0 []\n                           RedeemerPtr Spend 1 : Constr 0 []\n                         attached scripts:\n                           PlutusScript PlutusV2 ScriptHash \"8a3ecdafa6b25102dd579b8936b45d7c45837ffe6b022f11916aa5a6\"\n                       Utxo index:\n                         ( 2fbb27714ca8227f4a97abf65e38ad422638884d6105066fdf7dc713889a4e1d!0\n                         , - 21000000 lovelace addressed to\n                             ScriptCredential: 8a3ecdafa6b25102dd579b8936b45d7c45837ffe6b022f11916aa5a6 (no staking credential)\n                             with datum hash e7347ec268e4a077280db2be5224822e7366cd061db0fd8e2cda0c72e1a3e503 )\n                         ( 577c0fbc8183b218791a85aba2fd13d826b918aae150f7e85c315910e9e9892a!0\n                         , - 16000000 lovelace addressed to\n                             ScriptCredential: 8a3ecdafa6b25102dd579b8936b45d7c45837ffe6b022f11916aa5a6 (no staking credential)\n                             with datum hash 2cc2afd267462229babbc139837611310e4307bd6c7e870049c22fb02c2ad122 )\n[INFO] Slot 3: W[2]: Finished balancing:\n                       Tx a8aadfebb9882d2181fbedaf79816041c64a52b1eb0f1b972fbbb10a34d0339f:\n                         inputs:\n                           - 2fbb27714ca8227f4a97abf65e38ad422638884d6105066fdf7dc713889a4e1d!0\n                           - 577c0fbc8183b218791a85aba2fd13d826b918aae150f7e85c315910e9e9892a!0\n                         reference inputs:\n                         collateral inputs:\n                           - 4b3900ad38e0dcf405aa8aef875600a50f7d63a6fa78b899f5345aba6b585a07!20\n                         outputs:\n                           - 10000000 lovelace addressed to\n                             PubKeyCredential: a2c20c77887ace1cd986193e4e75babd8993cfd56995cd5cfce609c2 (no staking credential)\n                           - 20000000 lovelace addressed to\n                             PubKeyCredential: 80a4f45b56b88d1139da23bc4c3c75ec6d32943c087f250b86193ca7 (no staking credential)\n                           - 5795516 lovelace addressed to\n                             PubKeyCredential: 80a4f45b56b88d1139da23bc4c3c75ec6d32943c087f250b86193ca7 (no staking credential)\n                         return collateral:\n                           - 9999999998193274 lovelace addressed to\n                             PubKeyCredential: 80a4f45b56b88d1139da23bc4c3c75ec6d32943c087f250b86193ca7 (no staking credential)\n                         total collateral: 1806726 lovelace\n                         mint: \n                         fee: 1204484 lovelace\n                         validity range: Interval {ivFrom = LowerBound NegInf True, ivTo = UpperBound (Finite (Slot {getSlot = 39})) False}\n                         data:\n                           ( 2cc2afd267462229babbc139837611310e4307bd6c7e870049c22fb02c2ad122\n                           , \".\\n\\214\\f2\\a$\\140\\236\\212}\\189\\227\\215R\\224\\170\\209A\\214\\184\\248\\SUB\\194\\198\\236\\162|\" )\n                           ( e7347ec268e4a077280db2be5224822e7366cd061db0fd8e2cda0c72e1a3e503\n                           , \"\\191\\&4-\\221;\\SUBa\\145\\212\\206\\147l\\146\\210\\152\\&4\\214\\135\\158\\223(I\\234\\234\\132\\200'\\248\" )\n                         redeemers:\n                           RedeemerPtr Spend 0 : Constr 0 []\n                           RedeemerPtr Spend 1 : Constr 0 []\n                         attached scripts:\n                           PlutusScript PlutusV2 ScriptHash \"8a3ecdafa6b25102dd579b8936b45d7c45837ffe6b022f11916aa5a6\"\n[INFO] Slot 3: W[2]: Signing tx: a8aadfebb9882d2181fbedaf79816041c64a52b1eb0f1b972fbbb10a34d0339f\n[INFO] Slot 3: W[2]: Submitting tx: a8aadfebb9882d2181fbedaf79816041c64a52b1eb0f1b972fbbb10a34d0339f\n[INFO] Slot 3: W[2]: TxSubmit: a8aadfebb9882d2181fbedaf79816041c64a52b1eb0f1b972fbbb10a34d0339f\n[WARNING] Slot 3: TxnValidationFail Phase1 a8aadfebb9882d2181fbedaf79816041c64a52b1eb0f1b972fbbb10a34d0339f: CardanoLedgerValidationError \"ApplyTxError [UtxowFailure (UtxoFailure (FromAlonzoUtxoFail (MaxTxSizeUTxO 17999 16384)))]\" [  ]\n", failingTestCase = ["Actions \n [Pay (Wallet 3) 16,\n  Pay (Wallet 5) 21,\n  Redeem (Wallet 2)]","Transactions failed to validate:\na8aadfebb9882d2181fbedaf79816041c64a52b1eb0f1b972fbbb10a34d0339f: CardanoLedgerValidationError \"ApplyTxError [UtxowFailure (UtxoFailure (FromAlonzoUtxoFail (MaxTxSizeUTxO 17999 16384)))]\"","Test failed.","Emulator log:","[INFO] Slot 0: TxnValidate 4b3900ad38e0dcf405aa8aef875600a50f7d63a6fa78b899f5345aba6b585a07 [  ]","[INFO] Slot 1: 00000000-0000-4000-8000-000000000000 {Wallet W[1]}:\n                 Contract instance started","[INFO] Slot 1: 00000000-0000-4000-8000-000000000001 {Wallet W[2]}:\n                 Contract instance started","[INFO] Slot 1: 00000000-0000-4000-8000-000000000002 {Wallet W[3]}:\n                 Contract instance started","[INFO] Slot 1: 00000000-0000-4000-8000-000000000003 {Wallet W[4]}:\n                 Contract instance started","[INFO] Slot 1: 00000000-0000-4000-8000-000000000004 {Wallet W[5]}:\n                 Contract instance started","[INFO] Slot 1: 00000000-0000-4000-8000-000000000002 {Wallet W[3]}:\n                 Receive endpoint call on 'pay-escrow' for Object (fromList [(\"contents\",Array [Object (fromList [(\"getEndpointDescription\",String \"pay-escrow\")]),Object (fromList [(\"unEndpointValue\",Object (fromList [(\"getValue\",Array [Array [Object (fromList [(\"unCurrencySymbol\",String \"\")]),Array [Array [Object (fromList [(\"unTokenName\",String \"\")]),Number 1.6e7]]]])]))])]),(\"tag\",String \"ExposeEndpointResp\")])","[INFO] Slot 1: W[3]: Balancing an unbalanced transaction:\n                       Tx 4bbbb856a9ecc96e1e477e818e3e9d2bb8f1cf539ea37b5eaad67d3332697320:\n                         inputs:\n                         reference inputs:\n                         collateral inputs:\n                         outputs:\n                           - 16000000 lovelace addressed to\n                             ScriptCredential: 8a3ecdafa6b25102dd579b8936b45d7c45837ffe6b022f11916aa5a6 (no staking credential)\n                             with datum in tx ScriptDataBytes \".\\n\\214\\f2\\a$\\140\\236\\212}\\189\\227\\215R\\224\\170\\209A\\214\\184\\248\\SUB\\194\\198\\236\\162|\"\n                         mint: \n                         fee: 0 lovelace\n                         validity range: Interval {ivFrom = LowerBound (Finite (Slot {getSlot = 0})) True, ivTo = UpperBound (Finite (Slot {getSlot = 40})) False}\n                         data:\n                           ( 2cc2afd267462229babbc139837611310e4307bd6c7e870049c22fb02c2ad122\n                           , \".\\n\\214\\f2\\a$\\140\\236\\212}\\189\\227\\215R\\224\\170\\209A\\214\\184\\248\\SUB\\194\\198\\236\\162|\" )\n                         redeemers:\n                       Utxo index:","[INFO] Slot 1: W[3]: Finished balancing:\n                       Tx 577c0fbc8183b218791a85aba2fd13d826b918aae150f7e85c315910e9e9892a:\n                         inputs:\n                           - 4b3900ad38e0dcf405aa8aef875600a50f7d63a6fa78b899f5345aba6b585a07!0\n                         reference inputs:\n                         collateral inputs:\n                         outputs:\n                           - 16000000 lovelace addressed to\n                             ScriptCredential: 8a3ecdafa6b25102dd579b8936b45d7c45837ffe6b022f11916aa5a6 (no staking credential)\n                             with datum in tx ScriptDataBytes \".\\n\\214\\f2\\a$\\140\\236\\212}\\189\\227\\215R\\224\\170\\209A\\214\\184\\248\\SUB\\194\\198\\236\\162|\"\n                           - 9999999983829483 lovelace addressed to\n                             PubKeyCredential: 2e0ad60c3207248cecd47dbde3d752e0aad141d6b8f81ac2c6eca27c (no staking credential)\n                         mint: \n                         fee: 170517 lovelace\n                         validity range: Interval {ivFrom = LowerBound (Finite (Slot {getSlot = 0})) True, ivTo = UpperBound (Finite (Slot {getSlot = 40})) False}\n                         data:\n                           ( 2cc2afd267462229babbc139837611310e4307bd6c7e870049c22fb02c2ad122\n                           , \".\\n\\214\\f2\\a$\\140\\236\\212}\\189\\227\\215R\\224\\170\\209A\\214\\184\\248\\SUB\\194\\198\\236\\162|\" )\n                         redeemers:","[INFO] Slot 1: W[3]: Signing tx: 577c0fbc8183b218791a85aba2fd13d826b918aae150f7e85c315910e9e9892a","[INFO] Slot 1: W[3]: Submitting tx: 577c0fbc8183b218791a85aba2fd13d826b918aae150f7e85c315910e9e9892a","[INFO] Slot 1: W[3]: TxSubmit: 577c0fbc8183b218791a85aba2fd13d826b918aae150f7e85c315910e9e9892a","[INFO] Slot 1: TxnValidate 577c0fbc8183b218791a85aba2fd13d826b918aae150f7e85c315910e9e9892a [  ]","[INFO] Slot 2: 00000000-0000-4000-8000-000000000004 {Wallet W[5]}:\n                 Receive endpoint call on 'pay-escrow' for Object (fromList [(\"contents\",Array [Object (fromList [(\"getEndpointDescription\",String \"pay-escrow\")]),Object (fromList [(\"unEndpointValue\",Object (fromList [(\"getValue\",Array [Array [Object (fromList [(\"unCurrencySymbol\",String \"\")]),Array [Array [Object (fromList [(\"unTokenName\",String \"\")]),Number 2.1e7]]]])]))])]),(\"tag\",String \"ExposeEndpointResp\")])","[INFO] Slot 2: W[5]: Balancing an unbalanced transaction:\n                       Tx b747d2c538c99b571ab5abc3cddf51d91ebcd1c1cdab25f8bd75b0dfe07649a8:\n                         inputs:\n                         reference inputs:\n                         collateral inputs:\n                         outputs:\n                           - 21000000 lovelace addressed to\n                             ScriptCredential: 8a3ecdafa6b25102dd579b8936b45d7c45837ffe6b022f11916aa5a6 (no staking credential)\n                             with datum in tx ScriptDataBytes \"\\191\\&4-\\221;\\SUBa\\145\\212\\206\\147l\\146\\210\\152\\&4\\214\\135\\158\\223(I\\234\\234\\132\\200'\\248\"\n                         mint: \n                         fee: 0 lovelace\n                         validity range: Interval {ivFrom = LowerBound (Finite (Slot {getSlot = 0})) True, ivTo = UpperBound (Finite (Slot {getSlot = 40})) False}\n                         data:\n                           ( e7347ec268e4a077280db2be5224822e7366cd061db0fd8e2cda0c72e1a3e503\n                           , \"\\191\\&4-\\221;\\SUBa\\145\\212\\206\\147l\\146\\210\\152\\&4\\214\\135\\158\\223(I\\234\\234\\132\\200'\\248\" )\n                         redeemers:\n                       Utxo index:","[INFO] Slot 2: W[5]: Finished balancing:\n                       Tx 2fbb27714ca8227f4a97abf65e38ad422638884d6105066fdf7dc713889a4e1d:\n                         inputs:\n                           - 4b3900ad38e0dcf405aa8aef875600a50f7d63a6fa78b899f5345aba6b585a07!70\n                         reference inputs:\n                         collateral inputs:\n                         outputs:\n                           - 21000000 lovelace addressed to\n                             ScriptCredential: 8a3ecdafa6b25102dd579b8936b45d7c45837ffe6b022f11916aa5a6 (no staking credential)\n                             with datum in tx ScriptDataBytes \"\\191\\&4-\\221;\\SUBa\\145\\212\\206\\147l\\146\\210\\152\\&4\\214\\135\\158\\223(I\\234\\234\\132\\200'\\248\"\n                           - 9999999978829439 lovelace addressed to\n                             PubKeyCredential: bf342ddd3b1a6191d4ce936c92d29834d6879edf2849eaea84c827f8 (no staking credential)\n                         mint: \n                         fee: 170561 lovelace\n                         validity range: Interval {ivFrom = LowerBound (Finite (Slot {getSlot = 0})) True, ivTo = UpperBound (Finite (Slot {getSlot = 40})) False}\n                         data:\n                           ( e7347ec268e4a077280db2be5224822e7366cd061db0fd8e2cda0c72e1a3e503\n                           , \"\\191\\&4-\\221;\\SUBa\\145\\212\\206\\147l\\146\\210\\152\\&4\\214\\135\\158\\223(I\\234\\234\\132\\200'\\248\" )\n                         redeemers:","[INFO] Slot 2: W[5]: Signing tx: 2fbb27714ca8227f4a97abf65e38ad422638884d6105066fdf7dc713889a4e1d","[INFO] Slot 2: W[5]: Submitting tx: 2fbb27714ca8227f4a97abf65e38ad422638884d6105066fdf7dc713889a4e1d","[INFO] Slot 2: W[5]: TxSubmit: 2fbb27714ca8227f4a97abf65e38ad422638884d6105066fdf7dc713889a4e1d","[INFO] Slot 2: TxnValidate 2fbb27714ca8227f4a97abf65e38ad422638884d6105066fdf7dc713889a4e1d [  ]","[INFO] Slot 3: 00000000-0000-4000-8000-000000000001 {Wallet W[2]}:\n                 Receive endpoint call on 'redeem-escrow' for Object (fromList [(\"contents\",Array [Object (fromList [(\"getEndpointDescription\",String \"redeem-escrow\")]),Object (fromList [(\"unEndpointValue\",Array [])])]),(\"tag\",String \"ExposeEndpointResp\")])","[INFO] Slot 3: W[2]: Balancing an unbalanced transaction:\n                       Tx 53b10a8c4a5e15374df16323d91705855a4b90214731e0b3c887d37a9397af8c:\n                         inputs:\n                           - 2fbb27714ca8227f4a97abf65e38ad422638884d6105066fdf7dc713889a4e1d!0\n                           - 577c0fbc8183b218791a85aba2fd13d826b918aae150f7e85c315910e9e9892a!0\n                         reference inputs:\n                         collateral inputs:\n                         outputs:\n                           - 10000000 lovelace addressed to\n                             PubKeyCredential: a2c20c77887ace1cd986193e4e75babd8993cfd56995cd5cfce609c2 (no staking credential)\n                           - 20000000 lovelace addressed to\n                             PubKeyCredential: 80a4f45b56b88d1139da23bc4c3c75ec6d32943c087f250b86193ca7 (no staking credential)\n                         mint: \n                         fee: 0 lovelace\n                         validity range: Interval {ivFrom = LowerBound NegInf True, ivTo = UpperBound (Finite (Slot {getSlot = 39})) False}\n                         data:\n                           ( 2cc2afd267462229babbc139837611310e4307bd6c7e870049c22fb02c2ad122\n                           , \".\\n\\214\\f2\\a$\\140\\236\\212}\\189\\227\\215R\\224\\170\\209A\\214\\184\\248\\SUB\\194\\198\\236\\162|\" )\n                           ( e7347ec268e4a077280db2be5224822e7366cd061db0fd8e2cda0c72e1a3e503\n                           , \"\\191\\&4-\\221;\\SUBa\\145\\212\\206\\147l\\146\\210\\152\\&4\\214\\135\\158\\223(I\\234\\234\\132\\200'\\248\" )\n                         redeemers:\n                           RedeemerPtr Spend 0 : Constr 0 []\n                           RedeemerPtr Spend 1 : Constr 0 []\n                         attached scripts:\n                           PlutusScript PlutusV2 ScriptHash \"8a3ecdafa6b25102dd579b8936b45d7c45837ffe6b022f11916aa5a6\"\n                       Utxo index:\n                         ( 2fbb27714ca8227f4a97abf65e38ad422638884d6105066fdf7dc713889a4e1d!0\n                         , - 21000000 lovelace addressed to\n                             ScriptCredential: 8a3ecdafa6b25102dd579b8936b45d7c45837ffe6b022f11916aa5a6 (no staking credential)\n                             with datum hash e7347ec268e4a077280db2be5224822e7366cd061db0fd8e2cda0c72e1a3e503 )\n                         ( 577c0fbc8183b218791a85aba2fd13d826b918aae150f7e85c315910e9e9892a!0\n                         , - 16000000 lovelace addressed to\n                             ScriptCredential: 8a3ecdafa6b25102dd579b8936b45d7c45837ffe6b022f11916aa5a6 (no staking credential)\n                             with datum hash 2cc2afd267462229babbc139837611310e4307bd6c7e870049c22fb02c2ad122 )","[INFO] Slot 3: W[2]: Finished balancing:\n                       Tx a8aadfebb9882d2181fbedaf79816041c64a52b1eb0f1b972fbbb10a34d0339f:\n                         inputs:\n                           - 2fbb27714ca8227f4a97abf65e38ad422638884d6105066fdf7dc713889a4e1d!0\n                           - 577c0fbc8183b218791a85aba2fd13d826b918aae150f7e85c315910e9e9892a!0\n                         reference inputs:\n                         collateral inputs:\n                           - 4b3900ad38e0dcf405aa8aef875600a50f7d63a6fa78b899f5345aba6b585a07!20\n                         outputs:\n                           - 10000000 lovelace addressed to\n                             PubKeyCredential: a2c20c77887ace1cd986193e4e75babd8993cfd56995cd5cfce609c2 (no staking credential)\n                           - 20000000 lovelace addressed to\n                             PubKeyCredential: 80a4f45b56b88d1139da23bc4c3c75ec6d32943c087f250b86193ca7 (no staking credential)\n                           - 5795516 lovelace addressed to\n                             PubKeyCredential: 80a4f45b56b88d1139da23bc4c3c75ec6d32943c087f250b86193ca7 (no staking credential)\n                         return collateral:\n                           - 9999999998193274 lovelace addressed to\n                             PubKeyCredential: 80a4f45b56b88d1139da23bc4c3c75ec6d32943c087f250b86193ca7 (no staking credential)\n                         total collateral: 1806726 lovelace\n                         mint: \n                         fee: 1204484 lovelace\n                         validity range: Interval {ivFrom = LowerBound NegInf True, ivTo = UpperBound (Finite (Slot {getSlot = 39})) False}\n                         data:\n                           ( 2cc2afd267462229babbc139837611310e4307bd6c7e870049c22fb02c2ad122\n                           , \".\\n\\214\\f2\\a$\\140\\236\\212}\\189\\227\\215R\\224\\170\\209A\\214\\184\\248\\SUB\\194\\198\\236\\162|\" )\n                           ( e7347ec268e4a077280db2be5224822e7366cd061db0fd8e2cda0c72e1a3e503\n                           , \"\\191\\&4-\\221;\\SUBa\\145\\212\\206\\147l\\146\\210\\152\\&4\\214\\135\\158\\223(I\\234\\234\\132\\200'\\248\" )\n                         redeemers:\n                           RedeemerPtr Spend 0 : Constr 0 []\n                           RedeemerPtr Spend 1 : Constr 0 []\n                         attached scripts:\n                           PlutusScript PlutusV2 ScriptHash \"8a3ecdafa6b25102dd579b8936b45d7c45837ffe6b022f11916aa5a6\"","[INFO] Slot 3: W[2]: Signing tx: a8aadfebb9882d2181fbedaf79816041c64a52b1eb0f1b972fbbb10a34d0339f","[INFO] Slot 3: W[2]: Submitting tx: a8aadfebb9882d2181fbedaf79816041c64a52b1eb0f1b972fbbb10a34d0339f","[INFO] Slot 3: W[2]: TxSubmit: a8aadfebb9882d2181fbedaf79816041c64a52b1eb0f1b972fbbb10a34d0339f","[WARNING] Slot 3: TxnValidationFail Phase1 a8aadfebb9882d2181fbedaf79816041c64a52b1eb0f1b972fbbb10a34d0339f: CardanoLedgerValidationError \"ApplyTxError [UtxowFailure (UtxoFailure (FromAlonzoUtxoFail (MaxTxSizeUTxO 17999 16384)))]\" [  ]"], failingLabels = [], failingClasses = fromList []}), _certRes_DLTests = [("redeem test",Failure {numTests = 1, numDiscarded = 0, numShrinks = 0, numShrinkTries = 0, numShrinkFinal = 144, usedSeed = SMGen 11894273955887698173 8141340912490668715, usedSize = 0, reason = "Falsified", theException = Nothing, output = "*** Failed! Falsified (after 1 test):\ndo _ <- forAllQ $ exactlyQ $ 16\n   action $ Pay (Wallet 1) 16\n   action $ Pay (Wallet 2) 16\n   action $ Pay (Wallet 3) 16\n   action $ Redeem (Wallet 4)\n   pure ()\n\nBalance changes don't match:\n  Predicted symbolic balance changes:\n    Wallet 3: {-16000000 Lovelace}\n    Wallet 4: {18000000 Lovelace}\n    Wallet 2: {4000000 Lovelace}\n    Wallet 1: {-6000000 Lovelace}\n  Predicted actual balance changes:\n    Wallet 3: {-16000000 Lovelace}\n    Wallet 4: {18000000 Lovelace}\n    Wallet 2: {4000000 Lovelace}\n    Wallet 1: {-6000000 Lovelace}\n  Actual balance changes:\n    Wallet 3: {-16000000 Lovelace}\n    Wallet 2: {-16000000 Lovelace}\n    Wallet 1: {-16000000 Lovelace}\n  Sum of min Lovelace: Lovelace 5676270\n", failingTestCase = ["do _ <- forAllQ $ exactlyQ $ 16\n   action $ Pay (Wallet 1) 16\n   action $ Pay (Wallet 2) 16\n   action $ Pay (Wallet 3) 16\n   action $ Redeem (Wallet 4)\n   pure ()\n","Balance changes don't match:\n  Predicted symbolic balance changes:\n    Wallet 3: {-16000000 Lovelace}\n    Wallet 4: {18000000 Lovelace}\n    Wallet 2: {4000000 Lovelace}\n    Wallet 1: {-6000000 Lovelace}\n  Predicted actual balance changes:\n    Wallet 3: {-16000000 Lovelace}\n    Wallet 4: {18000000 Lovelace}\n    Wallet 2: {4000000 Lovelace}\n    Wallet 1: {-6000000 Lovelace}\n  Actual balance changes:\n    Wallet 3: {-16000000 Lovelace}\n    Wallet 2: {-16000000 Lovelace}\n    Wallet 1: {-16000000 Lovelace}\n  Sum of min Lovelace: Lovelace 5676270"], failingLabels = [], failingClasses = fromList ["Contains Redeem","Redeemable"]}),("refund test",Success {numTests = 100, numDiscarded = 0, labels = fromList [([],100)], classes = fromList [], tables = fromList [("Actions",fromList [("Pay",100),("Refund",100),("WaitUntil",100)]),("Wait interval",fromList [("90-99",100)]),("Wait until",fromList [("100-199",100)])], output = "+++ OK, passed 100 tests.\n\nActions (300 in total):\n33.3% Pay\n33.3% Refund\n33.3% WaitUntil\n\nWait interval (100 in total):\n100% 90-99\n\nWait until (100 in total):\n100% 100-199\n"})]}
+Prelude Spec.Escrow Main>
