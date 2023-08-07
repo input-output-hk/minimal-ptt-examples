@@ -418,10 +418,11 @@ unitTest2 = do
               action $ Refund w1
 
 unitTest3 :: DL EscrowModel ()
-unitTest3 = do
-              action $ Pay (w2) 27
-              action $ Pay (w4) 22
-              action $ Redeem (w5)
+unitTest3 =
+  do
+    action $ Pay (w4) 20
+    (waitUntilDL 41)
+    action $ Refund (w4)
 
 prop_UnitTest :: Property
 prop_UnitTest = withMaxSuccess 10 $ forAllDL unitTest3 prop_Escrow
