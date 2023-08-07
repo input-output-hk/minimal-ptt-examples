@@ -11,6 +11,8 @@ import Text.Megaparsec.Char.Lexer
 import Data.Functor (void)
 import Data.Bifunctor (second)
 import Replace.Megaparsec
+import System.IO
+import Control.Monad
 
 {-
 https://github.com/haskell-github-trust/replace-megaparsec
@@ -21,6 +23,7 @@ failingTestCase = ["do action $ Pay (Wallet 4) 20\n   pure ()\n","do action $ Wa
 failingTestCase = ["Actions \n [Pay (Wallet 2) 27,\n  Pay (Wallet 4) 22,\n  Redeem (Wallet 5)]",
 
 failingTestCase = ["Actions \n [Pay (Wallet 2) 27,\n  Pay (Wallet 4) 22,\n  Redeem (Wallet 5)]",
+
 -}
 
 bigFailString = "failingTestCase = [\"Actions \n [Pay (Wallet 2) 27,\n  Pay (Wallet 4) 22,\n  Redeem (Wallet 5)]\",\"Balance changes don't match:\n  Predicted symbolic balance changes:\n    Wallet 4: {-22000000 Lovelace}\n    Wallet 2: {-7000000 Lovelace}\n"
@@ -40,6 +43,7 @@ failString = "[Pay (Wallet 2) 27,\n  Pay (Wallet 4) 22,\n  Redeem (Wallet 5)]"
 failString1 = "(Pay (Wallet 2) 27)"
 
 failString2 = "[Pay (Wallet 4) 20,\n  WaitUntil (SlotNo 41),\n  Refund (Wallet 4)]"
+
 
 -- remove [] from string and add space
 fixString :: String -> String
@@ -88,3 +92,18 @@ unitTest1 =
     (waitUntilDL 41)
     action $ Refund (w4)
 -}
+
+readExample :: IO String
+readExample = do
+          s <- readFile "output.txt"
+          return s
+
+
+output = Right ("[\"Actions \\n [Pay (Wallet 2) 27,\\n  Pay (Wallet 4) 22,\\n  Redeem (Wallet 5)]\",\"Balance changes don't match:\\n  Predicted symbolic balance changes:\\n    Wallet 4: {-22000000 Lovelace}\\n    Wallet 2: {-7000000 Lovelace}\\n    Wallet 1: {10000000 Lovelace}\\n    Wallet 5: {19000000 Lovelace}\\n  Predicted actual balance changes:\\n    Wallet 4: {-22000000 Lovelace}\\n    Wallet 2: {-7000000 Lovelace}\\n    Wallet 1: {10000000 Lovelace}\\n    Wallet 5: {19000000 Lovelace}\\n  Actual balance changes:\\n    Wallet 4: {-22000000 Lovelace}\\n    Wallet 2: {-27000000 Lovelace}\\n  Sum of min Lovelace: Lovelace 3784180\"]",())
+
+fixOutput :: Either String ([Char], ()) -> Maybe String
+fixOutput es = case es of
+                Left s -> Nothing
+                Right (s,c) -> if (take 9 s) == "[\"Actions"
+                               then Just "Success"
+                               else Nothing
