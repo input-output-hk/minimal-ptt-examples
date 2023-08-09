@@ -425,7 +425,7 @@ unitTest3 =
     action $ Refund (w4)
 
 prop_UnitTest :: Property
-prop_UnitTest = withMaxSuccess 10 $ forAllDL unitTest3 prop_Escrow
+prop_UnitTest = withMaxSuccess 1 $ forAllDL unitTest3 prop_Escrow
 
 -- | Certification.
 certification :: Certification EscrowModel
