@@ -3,7 +3,8 @@
 
 { inputs, inputs', pkgs, projects }:
 {
-  iog.dapp = projects.ghc8107;
+  # iog.dapp = projects.ghc8107;
+  dapp = projects.ghc8107;
   # packages = { };
   # checks = { };
   # apps = { };
