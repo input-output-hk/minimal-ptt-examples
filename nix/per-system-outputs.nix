@@ -5,6 +5,7 @@
 {
   # iog.dapp = projects.ghc8107;
   dapp = projects.ghc8107;
+  iog = dapp;
   # packages = { };
   # checks = { };
   # apps = { };
