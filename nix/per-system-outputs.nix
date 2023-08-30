@@ -3,7 +3,7 @@
 
 { inputs, inputs', pkgs, projects }:
 {
-  iog.dapp = projects.ghc8107;
+  # iog.dapp = projects.ghc8107;
   iog.dapp = legacyPackages.x86_64-linux;
   # packages = { };
   # checks = { };
