@@ -37,11 +37,8 @@
           LANG = lang;
         };
 
-        legacyPackages = rootProject;
         iog.dapp = rootProject;
-      })) // {
-        iog.dapp = self.legacyPackages.x86_64-linux;
-      };
+      })) 
 
   nixConfig = {
     extra-substituters = [
