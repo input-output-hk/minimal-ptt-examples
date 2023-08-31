@@ -38,7 +38,7 @@
         };
 
         iog.dapp = rootProject;
-      })) 
+      })); 
 
   nixConfig = {
     extra-substituters = [
