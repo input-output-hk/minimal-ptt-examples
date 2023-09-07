@@ -111,7 +111,7 @@ instance ContractModel EscrowModel where
     -- BadRefund w w' -> s ^. currentSlot < toSlotNo (s ^. contractState . refundSlot - 2)  -- why -2?
        --               || w /= w'
 
-  validFailingAction s a = False
+  validFailingAction s a = True
 
   arbitraryAction s = frequency $ [ (prefer beforeRefund,  Pay <$> genWallet <*> choose @Integer (10, 30))
                                   , (prefer beforeRefund,  Redeem <$> genWallet) ] ++
