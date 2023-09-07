@@ -18,5 +18,5 @@ user="${1:?'User not given'}"
 repo="${2:?'Repository not given'}"
 ref="${3:?'Reference not given'}"
 
-nix-prefetch-git --quiet https://github.com/"$user"/"$repo" "$ref" \
+nix-prefetch-github https://github.com/"$user"/"$repo" "$ref" \
 	| jq -r '.sha256'
