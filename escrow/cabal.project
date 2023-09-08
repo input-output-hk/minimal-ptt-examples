@@ -251,11 +251,11 @@ source-repository-package
 source-repository-package
     type: git
     location: https://github.com/input-output-hk/quickcheck-contractmodel
-    tag: 44a916e75c62f7bb67486f0a95e02497b0b8e6f6
+    tag: 5be9d5df36f9a13db6b1bac8ceeaeeb5c7356b61
     subdir:
       quickcheck-contractmodel
       quickcheck-threatmodel
-    --sha256: oy4flMsKsHLKE86ilNkYdWU6+1bJlvqfCMjMvHNRfyI=
+    --sha256: RzbTVuZt1dx8szTUe/m9JPsulAV9483Ysowk38d+Fnw=
 
 source-repository-package
     type: git
