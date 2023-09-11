@@ -18,6 +18,7 @@ module Spec.EscrowSpec where
 -- Imports Copied From Auction Example
 import Control.Lens hiding (elements)
 import Control.Monad.Reader
+import Control.Monad.Error
 
 import Data.Default
 import GHC.Generics hiding (to)
@@ -63,7 +64,6 @@ instance ContractModel EscrowModel where
   data Action EscrowModel = Pay Int Integer
                           | Redeem Int
                           | Refund Int
-                          -- | BadRefund Int Int
                           deriving (Eq, Show, Generic)
 
 
@@ -98,8 +98,6 @@ instance ContractModel EscrowModel where
       contributions %= Map.delete w
       deposit (walletAddr $ wallet w) (Ada.adaValueOf $ fromInteger v)
       wait 1
-    -- BadRefund _ _ -> do
-      -- wait 2
 
   precondition s a = case a of
     Redeem _ -> (s ^. contractState . contributions . to sum) >= (s ^. contractState . targets . to sum)
@@ -108,23 +106,26 @@ instance ContractModel EscrowModel where
              && Nothing /= (s ^. contractState . contributions . at w)
     Pay _ v -> s ^. currentSlot < toSlotNo (s ^. contractState . refundSlot - 1)
             && Ada.adaValueOf (fromInteger v) `geq` Ada.toValue L.minAdaTxOutEstimated
-    -- BadRefund w w' -> s ^. currentSlot < toSlotNo (s ^. contractState . refundSlot - 2)  -- why -2?
-       --               || w /= w'
 
-  validFailingAction s a = True
+  -- NOTE: this precondition is evidence of a bug! When you do a bad redeem the code crashes with en `error`
+  -- instead of handling the fault with an exception (that would be caught by `voidCatch`).
+  -- validFailingAction _ Redeem{} = False
+  -- NOTE: this is evidence of a bug! Sort out what's wrong here.
+  -- validFailingAction _ Pay{} = False
+  -- NOTE: this is evidence of a bug! We get `no scripts to refund` error when we should be getting an exception
+  -- or a graceful failure.
+  -- validFailingAction _ Refund{} = False
+  validFailingAction _ _        = True
 
-  arbitraryAction s = frequency $ [ (prefer beforeRefund,  Pay <$> genWallet <*> choose @Integer (10, 30))
-                                  , (prefer beforeRefund,  Redeem <$> genWallet) ] ++
-                                  -- , (prefer afterRefund,   BadRefund <$> genWallet <*> genWallet) ] ++
-                                  [ (prefer afterRefund,   Refund <$> QC.elements (s ^. contractState . contributions . to Map.keys))
-                                  | Prelude.not . null $ s ^. contractState . contributions . to Map.keys ]
+  arbitraryAction s = oneof [ Pay <$> genWallet <*> choose @Integer (10, 30)
+                            , Redeem <$> genWallet
+                            , Refund <$> genWallet
+                            ]
                   where
-                    slot = s ^. currentSlot
-                    beforeRefund = slot < toSlotNo (s ^. contractState . refundSlot)
-                    afterRefund = Prelude.not beforeRefund
-                    prefer b = if b then 10 else 1
-                    genWallet   = QC.choose (1, length knownWallets)
+                    genWallet = QC.choose (1, length knownWallets)
 
+
+voidCatch m = catchError (void m) (\ _ -> pure ())
 
 -- | Tell us how to run an `AuctionModel` in the `SuperMockChain` - an
 -- extension of the Cooked Validator `MockChain` monad adapted to
@@ -132,14 +133,12 @@ instance ContractModel EscrowModel where
 instance RunModel EscrowModel (SuperMockChain ()) where
   -- `perform` runs API actions by calling the off-chain code of
   -- the contract in the `SuperMockChain` monad.
-  perform _ (Pay w v) _ = void $ do
+  perform _ (Pay w v) _ = voidCatch $ do
     pay (typedValidator modelParams) (wallet w) modelParams (Ada.adaValueOf $ fromInteger v)
-  perform _ (Redeem w) _ = void $ do
+  perform _ (Redeem w) _ = voidCatch $ do
     redeem (typedValidator modelParams) (wallet w) modelParams
-  perform _ (Refund w) _ = void $ do
+  perform _ (Refund w) _ = voidCatch $ do
     refund (typedValidator modelParams) (wallet w) modelParams
-  -- perform _ (BadRefund w w') _ = void $ do
-    -- testFails $ badRefund (typedValidator modelParams) (wallet w) (wallet w') modelParams
 
 
   -- `monitoring` gives us a way to apply `QuickCheck` monitoring
@@ -148,7 +147,6 @@ instance RunModel EscrowModel (SuperMockChain ()) where
   -- we just track how many tests actually contain a `Hammer` action
   -- indicating that an auction has been finished.
   monitoring _ (Redeem _) _ _ = classify True "Contains Redeem"
-  -- monitoring (_,_) (BadRefund w w') = tabulate "Bad refund attempts" [if w==w' then "early refund" else "steal refund"]
   monitoring (s,s') _ _ _ = classify (redeemable s' && Prelude.not (redeemable s)) "Redeemable"
     where redeemable s = precondition s (Redeem undefined)
 

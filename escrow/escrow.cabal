@@ -27,6 +27,7 @@ flag defer-plugin-errors
 
 library
   exposed-modules:
+    Spec.EscrowSpec
     Contract.Escrow
     Contract.OffChain
   other-modules:
@@ -104,6 +105,7 @@ library
     , tasty-quickcheck
     , text
     , cooked-validators
+    , cooked-contractmodel
 
   if flag(defer-plugin-errors)
     ghc-options: -fplugin-opt PlutusTx.Plugin:defer-errors
