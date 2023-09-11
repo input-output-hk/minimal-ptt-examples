@@ -115,7 +115,10 @@ instance ContractModel EscrowModel where
   -- NOTE: this is evidence of a bug! We get `no scripts to refund` error when we should be getting an exception
   -- or a graceful failure.
   -- validFailingAction _ Refund{} = False
-  validFailingAction _ _        = True
+  -- validFailingAction _ _        = True
+  validFailingAction _ Redeem{} = False
+  validFailingAction _ Pay{} = False
+  validFailingAction _ Refund{} = True
 
   arbitraryAction s = oneof [ Pay <$> genWallet <*> choose @Integer (10, 30)
                             , Redeem <$> genWallet
@@ -271,3 +274,11 @@ redeemCheck = do
     redeem val (wallet 1) params
     void $ Cooked.awaitSlot $ deadlineSlot + 1
     payWallet (wallet 1) (wallet 2) (Ada.adaValueOf 920)
+
+unitTest :: DL EscrowModel ()
+unitTest = do
+             waitUntilDL 40
+             action $ Refund 8
+
+propTest :: Property
+propTest = withMaxSuccess 1 $ forAllDL unitTest prop_Escrow

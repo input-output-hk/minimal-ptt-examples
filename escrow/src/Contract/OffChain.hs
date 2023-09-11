@@ -46,6 +46,9 @@ import Cardano.Node.Emulator.Params
 import Control.Lens (review, view, has, only) -- makeClassyPrisms , view)
 import Contract.Escrow
 
+import Control.Monad.Except
+
+
 -- Issue 1
 {-
 Could not deduce (PrettyCooked L.PaymentPubKeyHash)
@@ -162,7 +165,7 @@ refund inst submitter escrow = do
     if (snd current) <= escrowDeadline escrow
     then error "refund before deadline"
     else if uouts == []
-    then error "no scripts to refund"
+    then throwError $ FailWith "no scripts to refund"
     else
       return (RefundSuccess (L.getCardanoTxId tx))
 
