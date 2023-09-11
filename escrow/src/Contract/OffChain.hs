@@ -107,9 +107,9 @@ redeem inst submitter escrow = do
       deadline = escrowDeadline escrow
     validityInterval <- slotRangeBefore (deadline - 1)
     if (snd current) >= deadline
-    then error "Deadline Passed"
+    then throwError $ FailWith "Deadline Passed"
     else if foldMap txOutValue uouts `lt` targetTotal escrow
-      then error "Not enough funds at address"
+      then throwError $ FailWith "Not enough funds at address"
       else do
         tx <- (validateTxSkel $
                 txSkelTemplate
@@ -163,7 +163,7 @@ refund inst submitter escrow = do
                 txSkelValidityRange = validityInterval
               })
     if (snd current) <= escrowDeadline escrow
-    then error "refund before deadline"
+    then throwError $ FailWith "refund before deadline"
     else if uouts == []
     then throwError $ FailWith "no scripts to refund"
     else

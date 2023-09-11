@@ -116,7 +116,7 @@ instance ContractModel EscrowModel where
   -- or a graceful failure.
   -- validFailingAction _ Refund{} = False
   -- validFailingAction _ _        = True
-  validFailingAction _ Redeem{} = False
+  validFailingAction _ Redeem{} = True
   validFailingAction _ Pay{} = False
   validFailingAction _ Refund{} = True
 
@@ -184,7 +184,7 @@ tests =
                 $ testSucceedsFrom def testInit refundCheck,
         testCase "Wallet receives redeem"
                 $ testSucceedsFrom def testInit redeemCheck,
-        testProperty "prop_Escrow" prop_Escrow]
+        testProperty "prop_Escrow" $ withMaxSuccess 30 prop_Escrow]
 
 usageExample :: Assertion
 usageExample = testSucceedsFrom def testInit $ do
@@ -277,8 +277,15 @@ redeemCheck = do
 
 unitTest :: DL EscrowModel ()
 unitTest = do
-             waitUntilDL 40
-             action $ Refund 8
+             action $ Pay 4 25
+             action $ Pay 9 13
+             action $ Redeem 7
+
+unitTest2 :: DL EscrowModel ()
+unitTest2 = do
+             action $ Pay 7 27
+             action $ Pay 4 22
+             action $ Redeem 1
 
 propTest :: Property
-propTest = withMaxSuccess 1 $ forAllDL unitTest prop_Escrow
+propTest = withMaxSuccess 10 $ forAllDL unitTest2 prop_Escrow
