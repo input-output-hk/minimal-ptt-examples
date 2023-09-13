@@ -173,7 +173,7 @@ tests =
                 $ testSucceedsFrom def testInit refundCheck,
         testCase "Wallet receives redeem"
                 $ testSucceedsFrom def testInit redeemCheck,
-        testProperty "prop_Escrow" $ withMaxSuccess 30 prop_Escrow]
+        testProperty "prop_Escrow" $ withMaxSuccess 1000 prop_Escrow]
 
 usageExample :: Assertion
 usageExample = testSucceedsFrom def testInit $ do
