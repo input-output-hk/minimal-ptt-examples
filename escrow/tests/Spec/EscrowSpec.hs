@@ -101,26 +101,15 @@ instance ContractModel EscrowModel where
 
   precondition s a = case a of
     Redeem _ -> (s ^. contractState . contributions . to sum) >= (s ^. contractState . targets . to sum)
-             && (s ^. currentSlot < toSlotNo (s ^. contractState . refundSlot - 1))
+             && (s ^. currentSlot < toSlotNo (s ^. contractState . refundSlot))
     Refund w -> s ^. currentSlot >= toSlotNo (s ^. contractState . refundSlot)
              && Nothing /= (s ^. contractState . contributions . at w)
-    Pay _ v -> s ^. currentSlot < toSlotNo (s ^. contractState . refundSlot - 1)
+    Pay _ v -> s ^. currentSlot < toSlotNo (s ^. contractState . refundSlot)
             && Ada.adaValueOf (fromInteger v) `geq` Ada.toValue L.minAdaTxOutEstimated
 
-  -- NOTE: this precondition is evidence of a bug! When you do a bad redeem the code crashes with en `error`
-  -- instead of handling the fault with an exception (that would be caught by `voidCatch`).
-  -- validFailingAction _ Redeem{} = False
-  -- NOTE: this is evidence of a bug! Sort out what's wrong here.
-  -- validFailingAction _ Pay{} = False
-  -- NOTE: this is evidence of a bug! We get `no scripts to refund` error when we should be getting an exception
-  -- or a graceful failure.
-  -- validFailingAction _ Refund{} = False
-  -- validFailingAction _ _        = True
-  validFailingAction _ Redeem{} = True
-  validFailingAction _ Pay{} = False
-  validFailingAction _ Refund{} = True
+  validFailingAction _ _ = True
 
-  arbitraryAction s = oneof [ Pay <$> genWallet <*> choose @Integer (10, 30)
+  arbitraryAction _ = oneof [ Pay <$> genWallet <*> choose @Integer (10, 30)
                             , Redeem <$> genWallet
                             , Refund <$> genWallet
                             ]
