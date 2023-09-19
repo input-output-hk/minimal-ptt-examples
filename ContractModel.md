@@ -14,7 +14,7 @@ Examples containing Dapps with certification objects that are compatible with th
 
 ## Certification Object <a name="intro"></a>
 
-The certification object is a way to define a list of tests to run using the defined contract model. This includes all of the tests defined in the [Contract Model Tutorial](https://plutus-apps.readthedocs.io/en/latest/plutus/tutorials/contract-models.html). The certification object is defined by the following code:
+The certification object is a standardised way to define a list of tests to run using the defined contract model. This includes all of the tests defined in the [Contract Model Tutorial](https://plutus-apps.readthedocs.io/en/latest/plutus/tutorials/contract-models.html). The certification object is defined by the following code:
 
 
 ```haskell
@@ -51,7 +51,7 @@ This property tests to see if a contract instance can be restarted in the event 
 
 **Double Satisfaction**
 
-This property tests to see if a conctract is vulnerable to the [double satisfaction](https://plutus.readthedocs.io/en/latest/reference/writing-scripts/common-weaknesses/double-satisfaction.html). 
+This property tests to see if a conctract is vulnerable to the [double satisfaction vulnerability](https://plutus.readthedocs.io/en/latest/reference/writing-scripts/common-weaknesses/double-satisfaction.html). 
 
 **Other Tests**
 
@@ -59,7 +59,7 @@ Other tests such as unit tests are run using a [Tasty](https://hackage.haskell.o
 
 **DL Tests**
 
-DL tests are a form of unit tests that run specific traces of actions on the defined model. 
+DL tests are a form of unit tests using [Dynamic Logic](https://hackage.haskell.org/package/quickcheck-dynamic-3.3.1/docs/Test-QuickCheck-DynamicLogic.html) that run traces actions on the defined model. 
 
 ### Defining a Certification Object <a name="definition"></a>
 
@@ -81,7 +81,7 @@ certification = defaultCertification {
   where unitTest _ = tests
 ```
 
-The following explanations refer to the Escrow [Contract Model Tutorial](https://plutus-apps.readthedocs.io/en/latest/plutus/tutorials/contract-models.html).
+The following explanations refer to the Escrow [Contract Model Tutorial](https://plutus-apps.readthedocs.io/en/latest/plutus/tutorials/contract-models.html):
 
 ``certCoverageIndex``
 
@@ -101,7 +101,7 @@ This is defined by supplying a `Tasty` test tree. Note that the above definition
 
 ``certDLTests``
 
-This is defined by giving a list of pairs `DL` tests and strings indicating their names. A DL test is a simple unit test defined using the model. For more information about DL tests see [Dynamic Logic Tests](https://hackage.haskell.org/package/quickcheck-dynamic-3.3.1/docs/Test-QuickCheck-DynamicLogic.html). An example DL test for the Escrow contract is given by"
+This is defined by giving a list of pairs of `DL` tests and strings indicating their names. A DL test is a unit test defined using the model. For more information about DL tests see [Dynamic Logic Tests](https://hackage.haskell.org/package/quickcheck-dynamic-3.3.1/docs/Test-QuickCheck-DynamicLogic.html). An example DL test for the Escrow contract is given by:
 
 ```haskell
 refundTest :: DL EscrowModel ()
@@ -111,8 +111,6 @@ refundTest = do
                waitUntilDL 100
                action $ Refund w1
 ```
-
-
 
 
 
