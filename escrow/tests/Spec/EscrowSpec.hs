@@ -28,8 +28,8 @@ import Plutus.Script.Utils.Ada qualified as Ada
 import Test.QuickCheck qualified as QC
 import Test.QuickCheck.ContractModel hiding (inv)
 import Test.QuickCheck.ContractModel.Cooked
--- import Test.QuickCheck.ContractModel.ThreatModel
--- import Test.QuickCheck.ContractModel.ThreatModel.DoubleSatisfaction
+import Test.QuickCheck.ContractModel.ThreatModel
+import Test.QuickCheck.ThreatModel.DoubleSatisfaction
 import Test.Tasty
 import Test.Tasty.QuickCheck hiding (scale)
 
@@ -278,3 +278,9 @@ unitTest2 = do
 
 propTest :: Property
 propTest = withMaxSuccess 10 $ forAllDL unitTest2 prop_Escrow
+
+-- | A standard property that runs the `doubleSatisfaction` threat
+-- model against the auction contract to check for double satisfaction
+-- vulnerabilities.
+prop_doubleSatisfaction :: Actions EscrowModel -> Property
+prop_doubleSatisfaction = propRunActions testInit () (assertThreatModel doubleSatisfaction)
