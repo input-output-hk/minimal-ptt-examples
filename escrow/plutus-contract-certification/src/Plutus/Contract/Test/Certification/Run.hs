@@ -38,6 +38,7 @@ module Plutus.Contract.Test.Certification.Run
   , defaultCertificationOptions
   , certify
   , certifyWithOptions
+  , certifyWithOutput
   ) where
 
 import Control.Concurrent.Chan
@@ -362,3 +363,9 @@ certifyWithOptions opts Certification{..} = runCertMonad $ do
             , _certRes_whitelistOk                  = whitelistOk <$> certWhitelist
             , _certRes_whitelistResult              = wlRes
             , _certRes_DLTests                      = dlRes }
+
+certifyWithOutput :: forall m. ContractModel m => Certification m -> IO (CertificationReport m)
+certifyWithOutput m = do
+                        c <- certify m
+                        writeCoverageReport "certCoverage"  (_certRes_coverageReport c)
+                        return c
