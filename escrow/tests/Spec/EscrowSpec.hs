@@ -107,7 +107,7 @@ instance ContractModel EscrowModel where
     Pay _ v -> s ^. currentSlot < toSlotNo (s ^. contractState . refundSlot)
             && Ada.adaValueOf (fromInteger v) `geq` Ada.toValue L.minAdaTxOutEstimated
 
-  validFailingAction _ _ = True
+  validFailingAction _ _ = False
 
   arbitraryAction _ = oneof [ Pay <$> genWallet <*> choose @Integer (10, 30)
                             , Redeem <$> genWallet
