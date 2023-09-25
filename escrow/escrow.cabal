@@ -66,7 +66,7 @@ library
     , plutus-ledger                  >=1.1.0
     , plutus-script-utils            >=1.1.0
     , plutus-tx-constraints          >=1.1.0
-    , plutus-contract-certification
+    , plutus-contract-certification-cooked
 
   --------------------------
   -- Other IOG dependencies
@@ -140,7 +140,7 @@ test-suite escrow-test
     , plutus-script-utils            >=1.1.0
     , plutus-tx-constraints          >=1.1.0
     , escrow
-    , plutus-contract-certification
+    , plutus-contract-certification-cooked
 
   --------------------------
   -- Other IOG dependencies

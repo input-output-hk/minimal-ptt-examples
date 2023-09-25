@@ -13,7 +13,7 @@
 {-# LANGUAGE NumericUnderscores #-}
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
-module Plutus.Contract.Test.Certification.Run
+module Plutus.Contract.Test.Cooked.Certification.Run
   ( -- * A certification report holds all the necessary information
     -- to make sense of certification results
     CertificationReport
@@ -44,7 +44,7 @@ import Data.ByteString.Lazy.Char8 (unpack)
 import Data.IntMap qualified as IntMap
 import Data.Maybe
 import GHC.Generics
-import Plutus.Contract.Test.Certification
+import Plutus.Contract.Test.Cooked.Certification
 import Test.QuickCheck.ContractModel hiding (inv)
 import Test.QuickCheck.ContractModel.Cooked
 import Test.QuickCheck.ContractModel.ThreatModel

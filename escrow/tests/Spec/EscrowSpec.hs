@@ -46,7 +46,7 @@ import Cooked hiding (currentSlot)
 import Test.Tasty.HUnit
 import Plutus.V1.Ledger.Value hiding (adaSymbol, adaToken)
 
-import Plutus.Contract.Test.Certification
+import Plutus.Contract.Test.Cooked.Certification
 
 -- | initial distribution s.t. everyone owns five bananas
 testInit :: InitialDistribution
@@ -109,7 +109,7 @@ instance ContractModel EscrowModel where
     Pay _ v -> s ^. currentSlot < toSlotNo (s ^. contractState . refundSlot)
             && Ada.adaValueOf (fromInteger v) `geq` Ada.toValue L.minAdaTxOutEstimated
 
-  validFailingAction _ _ = False
+  validFailingAction _ _ = True
 
   arbitraryAction _ = oneof [ Pay <$> genWallet <*> choose @Integer (10, 30)
                             , Redeem <$> genWallet

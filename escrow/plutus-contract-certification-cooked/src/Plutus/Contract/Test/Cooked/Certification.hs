@@ -1,6 +1,6 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE GADTs           #-}
-module Plutus.Contract.Test.Certification where
+module Plutus.Contract.Test.Cooked.Certification where
 
 import Test.QuickCheck.ContractModel hiding (inv)
 import Test.Tasty as Tasty
