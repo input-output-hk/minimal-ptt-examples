@@ -1,7 +1,6 @@
 packages: .
           apps-compat-contractmodel
           cooked-contractmodel
-          plutus-contract-certification-cooked
 
 index-state: 2023-05-01T00:00:00Z
 index-state:
@@ -264,3 +263,9 @@ source-repository-package
       quickcheck-dynamic-iosim
       quickcheck-dynamic
     --sha256: QlHx7aNYO2L43JOruJlL/d/STYKve2apRSGG7KEGFAw=
+
+source-repository-package
+    type: git
+    location: https://github.com/Ali-Hill/plutus-contract-certification-cooked/
+    tag: 5617867c2fedc5f5cb100b9c843c62f7e3b493a0
+    --sha256: Vp7EvFmLI1dX6pCy+CO3e1ncvQ5Q6cnvgkV8nu8VVjs=

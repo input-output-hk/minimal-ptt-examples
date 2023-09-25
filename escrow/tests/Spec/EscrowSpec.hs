@@ -15,7 +15,6 @@
 {-# OPTIONS_GHC -Wno-deprecations #-}
 module Spec.EscrowSpec where
 
--- Imports Copied From Auction Example
 import Control.Lens hiding (elements)
 import Control.Monad.Reader
 import Control.Monad.Error
@@ -24,7 +23,6 @@ import Data.Default
 import GHC.Generics hiding (to)
 
 import Plutus.Script.Utils.Ada qualified as Ada
--- import Test.QuickCheck
 import Test.QuickCheck qualified as QC
 import Test.QuickCheck.ContractModel hiding (inv)
 import Test.QuickCheck.ContractModel.Cooked
@@ -35,7 +33,6 @@ import Test.Tasty.QuickCheck hiding (scale)
 
 import Cooked.Wallet
 
--- Imports Added by Me
 import Contract.OffChain
 import Contract.Escrow hiding (Action (..))
 import qualified Ledger as L
