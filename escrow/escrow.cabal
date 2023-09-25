@@ -66,7 +66,7 @@ library
     , plutus-ledger                  >=1.1.0
     , plutus-script-utils            >=1.1.0
     , plutus-tx-constraints          >=1.1.0
-    -- , plutus-use-cases               >=1.1.0
+    , plutus-contract-certification
 
   --------------------------
   -- Other IOG dependencies
@@ -140,6 +140,7 @@ test-suite escrow-test
     , plutus-script-utils            >=1.1.0
     , plutus-tx-constraints          >=1.1.0
     , escrow
+    , plutus-contract-certification
 
   --------------------------
   -- Other IOG dependencies
@@ -161,7 +162,6 @@ test-suite escrow-test
     , quickcheck-contractmodel     >=0.1.3.0
     , quickcheck-threatmodel
     , quickcheck-dynamic           >=3.0.2
-    , plutus-contract-certification
 
   if !(impl(ghcjs) || os(ghcjs))
     build-depends: plutus-tx-plugin >=1.0.0

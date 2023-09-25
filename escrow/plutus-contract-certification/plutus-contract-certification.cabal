@@ -61,10 +61,10 @@ library
   -- Other IOG dependencies
   --------------------------
   build-depends:
-    , plutus-tx           >=1.0.0
-    , quickcheck-dynamic  >=2.0
+    quickcheck-dynamic  >=2.0
     , plutus-script-utils >=1.1.0
     , cooked-validators
+    , quickcheck-threatmodel
 
   ------------------------
   -- Non-IOG dependencies
