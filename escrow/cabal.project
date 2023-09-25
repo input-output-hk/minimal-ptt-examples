@@ -1,6 +1,5 @@
 packages: .
-          apps-compat-contractmodel
-          cooked-contractmodel
+          certification
 
 index-state: 2023-05-01T00:00:00Z
 index-state:
@@ -269,3 +268,12 @@ source-repository-package
     location: https://github.com/Ali-Hill/plutus-contract-certification-cooked/
     tag: 5617867c2fedc5f5cb100b9c843c62f7e3b493a0
     --sha256: Vp7EvFmLI1dX6pCy+CO3e1ncvQ5Q6cnvgkV8nu8VVjs=
+
+source-repository-package
+    type: git
+    location: https://github.com/Quviq/quickcheck-contractmodel-cooked
+    tag: 35dfc688e3ea25fccc31314e8b6fc621241f5f15
+    subdir:
+      apps-compat-contractmodel
+      cooked-contractmodel
+    --sha256: yp7Mi+lrpB1NUYsEXpDfsFyxVT1hWr/L2euLLYVaFCQ=
