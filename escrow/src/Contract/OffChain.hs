@@ -169,37 +169,3 @@ refund inst submitter escrow = do
     else
       return (RefundSuccess (L.getCardanoTxId tx))
 
-{-
-badRefund ::
-    MonadBlockChain m
-    => Pl.TypedValidator Escrow
-    -> Wallet
-    -> Wallet
-    -> EscrowParams Datum
-    -> m L.TxId
-badRefund inst submitter target escrow = do
-    outputs <-
-      runUtxoSearch $
-        utxosAtSearch (Pl.validatorAddress inst)
-    current <- currentTime
-    let
-      pk = walletPKHash target
-      uouts = refundFilter (L.PaymentPubKeyHash pk) outputs
-      deadline = escrowDeadline escrow
-    validityInterval <- slotRangeAfter deadline
-    tx <- (validateTxSkel $
-            txSkelTemplate
-              { txSkelOpts = def {txOptEnsureMinAda = True},
-                txSkelSigners = [submitter],
-                txSkelIns = Map.fromList (map (\ (or , _) -> ( or , TxSkelRedeemerForScript Refund)) uouts),
-                txSkelValidityRange = validityInterval
-              })
-    return (L.getCardanoTxId tx)
--}
-
-  {-   if (snd current) <= escrowDeadline escrow
-    then error "refund before deadline"
-    else if uouts == []
-    then error "no scripts to refund"
-    else
-      return (RefundSuccess (L.getCardanoTxId tx)) -}
