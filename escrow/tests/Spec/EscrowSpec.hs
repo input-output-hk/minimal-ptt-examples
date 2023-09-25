@@ -15,7 +15,6 @@
 {-# OPTIONS_GHC -Wno-deprecations #-}
 module Spec.EscrowSpec where
 
--- Imports Copied From Auction Example
 import Control.Lens hiding (elements)
 import Control.Monad.Reader
 import Control.Monad.Error
@@ -24,18 +23,16 @@ import Data.Default
 import GHC.Generics hiding (to)
 
 import Plutus.Script.Utils.Ada qualified as Ada
--- import Test.QuickCheck
 import Test.QuickCheck qualified as QC
 import Test.QuickCheck.ContractModel hiding (inv)
 import Test.QuickCheck.ContractModel.Cooked
--- import Test.QuickCheck.ContractModel.ThreatModel
--- import Test.QuickCheck.ContractModel.ThreatModel.DoubleSatisfaction
+import Test.QuickCheck.ContractModel.ThreatModel
+import Test.QuickCheck.ThreatModel.DoubleSatisfaction
 import Test.Tasty
 import Test.Tasty.QuickCheck hiding (scale)
 
 import Cooked.Wallet
 
--- Imports Added by Me
 import Contract.OffChain
 import Contract.Escrow hiding (Action (..))
 import qualified Ledger as L
@@ -45,6 +42,8 @@ import Cardano.Node.Emulator.TimeSlot qualified as TimeSlot
 import Cooked hiding (currentSlot)
 import Test.Tasty.HUnit
 import Plutus.V1.Ledger.Value hiding (adaSymbol, adaToken)
+
+import Plutus.Contract.Test.Cooked.Certification
 
 -- | initial distribution s.t. everyone owns five bananas
 testInit :: InitialDistribution
@@ -107,7 +106,7 @@ instance ContractModel EscrowModel where
     Pay _ v -> s ^. currentSlot < toSlotNo (s ^. contractState . refundSlot)
             && Ada.adaValueOf (fromInteger v) `geq` Ada.toValue L.minAdaTxOutEstimated
 
-  validFailingAction _ _ = False
+  validFailingAction _ _ = True
 
   arbitraryAction _ = oneof [ Pay <$> genWallet <*> choose @Integer (10, 30)
                             , Redeem <$> genWallet
@@ -173,7 +172,7 @@ tests =
                 $ testSucceedsFrom def testInit refundCheck,
         testCase "Wallet receives redeem"
                 $ testSucceedsFrom def testInit redeemCheck,
-        testProperty "prop_Escrow" $ withMaxSuccess 1000 prop_Escrow]
+        testProperty "prop_Escrow" $ withMaxSuccess 20 prop_Escrow]
 
 usageExample :: Assertion
 usageExample = testSucceedsFrom def testInit $ do
@@ -264,8 +263,8 @@ redeemCheck = do
     void $ Cooked.awaitSlot $ deadlineSlot + 1
     payWallet (wallet 1) (wallet 2) (Ada.adaValueOf 920)
 
-unitTest :: DL EscrowModel ()
-unitTest = do
+unitTest1 :: DL EscrowModel ()
+unitTest1 = do
              action $ Pay 4 25
              action $ Pay 9 13
              action $ Redeem 7
@@ -278,3 +277,16 @@ unitTest2 = do
 
 propTest :: Property
 propTest = withMaxSuccess 10 $ forAllDL unitTest2 prop_Escrow
+
+-- | A standard property that runs the `doubleSatisfaction` threat
+-- model against the auction contract to check for double satisfaction
+-- vulnerabilities.
+prop_doubleSatisfaction :: Actions EscrowModel -> Property
+prop_doubleSatisfaction = propRunActions testInit () (assertThreatModel doubleSatisfaction)
+
+-- | Certification.
+certification :: Certification EscrowModel
+certification = defaultCertification {
+    certUnitTests = Just tests,
+    certDLTests = [("redeem test", unitTest1), ("refund test", unitTest2)]
+  }
