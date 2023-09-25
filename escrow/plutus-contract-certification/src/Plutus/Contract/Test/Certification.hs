@@ -16,7 +16,7 @@ data Certification m = Certification {
    -- certNoLockedFundsLight :: Maybe (NoLockedFundsProofLight m),
    -- certCrashTolerance     :: Maybe (Instance CrashTolerance m),  -- ^ Contract model for testing robustness against off-chain code crashes.
   --  certWhitelist          :: Maybe Whitelist,                    -- ^ List of allowed exceptions from on-chain code. Usually `Just 'defaultWhiteList'`.
-    certRunModel     :: Maybe (Instance (RunModel m (SuperMockChain ()))),  -- ^ Contract model for testing robustness against off-chain code crashes.
+   -- certRunModel     :: Maybe (Instance (RunModel m (SuperMockChain ()))),  -- ^ Contract model for testing robustness against off-chain code crashes.
 
     certUnitTests          :: Maybe TestTree,    -- ^ Unit tests using "Test.Tasty". See e.g. 'Plutus.Contract.Test.checkPredicateCoverage'.
     certDLTests            :: [(String, DL m ())]                 -- ^ Unit tests using 'Plutus.Contract.Test.ContractModel.DL'.
@@ -28,7 +28,7 @@ defaultCertification = Certification
   -- , certNoLockedFundsLight = Nothing
   -- , certCrashTolerance     = Nothing
   -- , certWhitelist          = Just defaultWhitelist
-     certRunModel           = Nothing,
+   --  certRunModel           = Nothing,
      certUnitTests          = Nothing
     , certDLTests            = []
   }

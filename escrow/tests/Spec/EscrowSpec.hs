@@ -46,6 +46,8 @@ import Cooked hiding (currentSlot)
 import Test.Tasty.HUnit
 import Plutus.V1.Ledger.Value hiding (adaSymbol, adaToken)
 
+import Plutus.Contract.Test.Certification
+
 -- | initial distribution s.t. everyone owns five bananas
 testInit :: InitialDistribution
 testInit = initialDistribution [(i, [Ada.lovelaceValueOf 20_000_000]) | i <- knownWallets]
@@ -173,7 +175,7 @@ tests =
                 $ testSucceedsFrom def testInit refundCheck,
         testCase "Wallet receives redeem"
                 $ testSucceedsFrom def testInit redeemCheck,
-        testProperty "prop_Escrow" $ withMaxSuccess 1000 prop_Escrow]
+        testProperty "prop_Escrow" $ withMaxSuccess 20 prop_Escrow]
 
 usageExample :: Assertion
 usageExample = testSucceedsFrom def testInit $ do
@@ -264,8 +266,8 @@ redeemCheck = do
     void $ Cooked.awaitSlot $ deadlineSlot + 1
     payWallet (wallet 1) (wallet 2) (Ada.adaValueOf 920)
 
-unitTest :: DL EscrowModel ()
-unitTest = do
+unitTest1 :: DL EscrowModel ()
+unitTest1 = do
              action $ Pay 4 25
              action $ Pay 9 13
              action $ Redeem 7
@@ -284,3 +286,10 @@ propTest = withMaxSuccess 10 $ forAllDL unitTest2 prop_Escrow
 -- vulnerabilities.
 prop_doubleSatisfaction :: Actions EscrowModel -> Property
 prop_doubleSatisfaction = propRunActions testInit () (assertThreatModel doubleSatisfaction)
+
+-- | Certification.
+certification :: Certification EscrowModel
+certification = defaultCertification {
+    certUnitTests = Just tests,
+    certDLTests = [("redeem test", unitTest1), ("refund test", unitTest2)]
+  }

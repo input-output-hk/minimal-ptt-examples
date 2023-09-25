@@ -22,13 +22,7 @@ module Plutus.Contract.Test.Certification.Run
   , certRes_standardPropertyResult
   -- TODO: turn on when double satisfaction is activated again
   -- , certRes_doubleSatisfactionResult
-  , certRes_noLockedFundsResult
-  , certRes_noLockedFundsLightResult
-  , certRes_standardCrashToleranceResult
   , certRes_unitTestResults
-  , certRes_coverageReport
-  , certRes_whitelistOk
-  , certRes_whitelistResult
   , certRes_DLTests
   -- * and we have a function for running certification
   , CertificationOptions(..)
@@ -39,7 +33,6 @@ module Plutus.Contract.Test.Certification.Run
   , defaultCertificationOptions
   , certify
   , certifyWithOptions
-  , certifyWithOutput
   ) where
 
 import Control.Concurrent.Chan
@@ -180,7 +173,7 @@ addOnTestEvents opts prop
     addCallback ch r = r { callbacks = cb : callbacks r }
       where cb = PostTest NotCounterexample $ \ _st res -> writeChan ch $ QuickCheckTestEvent (ok res)
 
-runStandardProperty :: forall m. ContractModel m => CertificationOptions -> CertMonad QC.Result
+runStandardProperty :: forall m s. (ContractModel m, (RunModel m (SuperMockChain ()))) => CertificationOptions -> CertMonad QC.Result
 runStandardProperty opts = quickCheckWithResult
                                   (mkQCArgs opts)
                                    $ addOnTestEvents opts $
@@ -220,7 +213,7 @@ runUnitTests t = do
         Tasty.Done r -> return r
         _            -> retry
 
-checkDerived :: forall d m c. (c m => ContractModel (d m))
+checkDerived :: forall d m c. (c m => ContractModel (d m), (RunModel (d m) (SuperMockChain ())))
              => Maybe (Instance c m)
              -> CertificationOptions
              -> CertificationTask
@@ -230,7 +223,7 @@ checkDerived (Just Instance) opts task =
   Just <$> wrapQCTask opts task (runStandardProperty @(d m) opts)
 
 
-checkDLTests :: forall m. ContractModel m
+checkDLTests :: forall m. (ContractModel m, (RunModel m (SuperMockChain ())))
             => [(String, DL m ())]
             -> CertificationOptions
             -> CertMonad [(String, QC.Result)]
@@ -241,6 +234,7 @@ checkDLTests tests opts =
                                     (mkQCArgs opts)
                                     $ addOnTestEvents opts $
                                         forAllDL dl (propRunActions
+                                                      @m
                                                       testInit
                                                       ()
                                                       balanceChangePredicate))
@@ -258,7 +252,7 @@ numTestsEvent :: CertificationOptions -> CertMonad ()
 numTestsEvent opts | Just ch <- certEventChannel opts = liftIO $ writeChan ch $ QuickCheckNumTestsEvent $ certOptNumTests opts
                    | otherwise                        = pure ()
 
-certify :: forall m. ContractModel m => Certification m -> IO (CertificationReport m)
+certify :: forall m. (ContractModel m, (RunModel m (SuperMockChain ()))) => Certification m -> IO (CertificationReport m)
 certify = certifyWithOptions defaultCertificationOptions
 
 wrapTask :: CertificationOptions
@@ -278,7 +272,7 @@ wrapQCTask :: CertificationOptions
            -> CertMonad QC.Result
 wrapQCTask opts task m = wrapTask opts task QC.isSuccess $ numTestsEvent opts >> m
 
-certifyWithOptions :: forall m. ContractModel m
+certifyWithOptions :: forall m. (ContractModel m, (RunModel m (SuperMockChain ())))
                    => CertificationOptions
                    -> Certification m
                    -> IO (CertificationReport m)
