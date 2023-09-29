@@ -318,30 +318,21 @@ check_propVestingWithCoverage = do
     withMaxSuccess 50 $ propRunActionsWithOptions @VestingModel defaultCheckOptions covopts (const (pure True))
   writeCoverageReport "Vesting" cr
 
+
+simpleVestTest :: DL VestingModel ()
+simpleVestTest = do
+              action $ Vest w2
+              waitUntilDL 11
+              action $ Retrieve w1 (Ada.adaValueOf 10)
+
 -- | Certification.
 certification :: Certification VestingModel
 certification = defaultCertification {
     certNoLockedFunds = Just noLockProof,
     certCrashTolerance = Just Instance,
     certUnitTests = Just unitTest,
+    certDLTests = [("Simple vesting test", simpleVestTest)],
     certCoverageIndex = covIdx
   }
     where unitTest _ = tests
 
-{-
-unitTest1 :: DL EscrowModel ()
-unitTest1 = do
-              val <- forAllQ $ chooseQ (10, 20)
-              action $ Pay w1 val
-              action $ Pay w2 val
-              action $ Pay w3 val
-              action $ Redeem w4
-
-
-unitTest2 :: DL EscrowModel ()
-unitTest2 = do
-              val <- forAllQ $ chooseQ (10, 20)
-              action $ Pay w1 val
-              waitUntilDL 100
-              action $ Refund w1
--}
