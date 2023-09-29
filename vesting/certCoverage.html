@@ -1,0 +1,59 @@
+<body ><h1 >Files</h1><ul ><li ><a href="#src/Contract/Vesting.hs" >src/Contract/Vesting.hs</a></li></ul><hr><h2 id="src/Contract/Vesting.hs" >src/Contract/Vesting.hs</h2><pre >.
+.
+.
+   109    <span style=background-color:lightgray;color:gray >    vestingTrancheAmount vestingTranche1 + vestingTrancheAmount vestingTranche2</span>
+   110    <span style=background-color:lightgray;color:gray ></span>
+   111    <span style=background-color:lightgray;color:gray >{-# INLINABLE availableFrom #-}</span>
+   112    <span style=background-color:lightgray;color:gray >-- | The amount guaranteed to be available from a given tranche in a given time range.</span>
+   113    <span style=background-color:lightgray;color:gray >availableFrom :: VestingTranche -&gt; POSIXTimeRange -&gt; Value</span>
+   114    <span style=background-color:white;color:black >availableFrom (VestingTranche d v) range =</span><span style=background-color:lightgray;color:gray ></span>
+   115    <span style=background-color:white;color:black >    -- The valid range is an open-ended range starting from the tranche vesting date</span><span style=background-color:lightgray;color:gray ></span>
+   116    <span style=background-color:white;color:black >    </span><span style=background-color:white;color:black >let </span><span style=background-color:white;color:black >validRange = </span><span style=background-color:white;color:black >Interval.from </span><span style=background-color:white;color:black >d</span><span style=background-color:white;color:black ></span><span style=background-color:lightgray;color:gray ></span>
+   117    <span style=background-color:white;color:black >    -- If the valid range completely contains the argument range (meaning in particular</span><span style=background-color:lightgray;color:gray ></span>
+   118    <span style=background-color:white;color:black >    -- that the start time of the argument range is after the tranche vesting date), then</span><span style=background-color:lightgray;color:gray ></span>
+   119    <span style=background-color:white;color:black >    -- the money in the tranche is available, otherwise nothing is available.</span><span style=background-color:lightgray;color:gray ></span>
+   120    <span style=background-color:white;color:black >    in if </span><span style=background-color:white;color:black >validRange </span><span style=background-color:white;color:black >`Interval.contains` </span><span style=background-color:white;color:black >range </span><span style=background-color:white;color:black >then </span><span style=background-color:white;color:black >v </span><span style=background-color:white;color:black >else </span><span style=background-color:white;color:black >zero</span><span style=background-color:lightgray;color:gray ></span>
+   121    <span style=background-color:lightgray;color:gray ></span>
+   122    <span style=background-color:lightgray;color:gray >availableAt :: VestingParams -&gt; POSIXTime -&gt; Value</span>
+   123    <span style=background-color:lightgray;color:gray >availableAt VestingParams{vestingTranche1, vestingTranche2} time =</span>
+   124    <span style=background-color:lightgray;color:gray >    let f VestingTranche{vestingTrancheDate, vestingTrancheAmount} =</span>
+   125    <span style=background-color:lightgray;color:gray >            if time &gt;= vestingTrancheDate then vestingTrancheAmount else mempty</span>
+   126    <span style=background-color:lightgray;color:gray >    in foldMap f [vestingTranche1, vestingTranche2]</span>
+   127    <span style=background-color:lightgray;color:gray ></span>
+   128    <span style=background-color:lightgray;color:gray >{-# INLINABLE remainingFrom #-}</span>
+   129    <span style=background-color:lightgray;color:gray >-- | The amount that has not been released from this tranche yet</span>
+   130    <span style=background-color:lightgray;color:gray >remainingFrom :: VestingTranche -&gt; POSIXTimeRange -&gt; Value</span>
+   131    <span style=background-color:white;color:black >remainingFrom t@VestingTranche{vestingTrancheAmount} range =</span><span style=background-color:lightgray;color:gray ></span>
+   132    <span style=background-color:white;color:black >    </span><span style=background-color:white;color:black >vestingTrancheAmount </span><span style=background-color:white;color:black >- </span><span style=background-color:white;color:black >availableFrom t </span><span style=background-color:white;color:black >range</span><span style=background-color:lightgray;color:gray ></span>
+   133    <span style=background-color:lightgray;color:gray ></span>
+   134    <span style=background-color:lightgray;color:gray >{-# INLINABLE validate #-}</span>
+   135    <span style=background-color:lightgray;color:gray >validate :: VestingParams -&gt; () -&gt; () -&gt; V2.ScriptContext -&gt; Bool</span>
+   136    <span style=background-color:white;color:black >validate VestingParams{vestingTranche1, vestingTranche2, vestingOwner} () () ctx@V2.ScriptContext{scriptContextTxInfo=txInfo@TxInfo{txInfoValidRange}} =</span><span style=background-color:lightgray;color:gray ></span>
+   137    <span style=background-color:white;color:black >    </span><span style=background-color:white;color:lightgreen >let</span><span style=background-color:lightgray;color:gray ></span>
+   138    <span style=background-color:white;color:lightgreen >        </span><span style=background-color:white;color:black >remainingActual  = </span><span style=background-color:white;color:black >V2.valueLockedBy </span><span style=background-color:white;color:black >txInfo </span><span style=background-color:white;color:black >(V2.ownHash </span><span style=background-color:white;color:black >ctx)</span><span style=background-color:white;color:black ></span><span style=background-color:white;color:lightgreen ></span><span style=background-color:lightgray;color:gray ></span>
+   139    <span style=background-color:white;color:lightgreen ></span><span style=background-color:lightgray;color:gray ></span>
+   140    <span style=background-color:white;color:lightgreen >        </span><span style=background-color:white;color:black >remainingExpected =</span><span style=background-color:lightgray;color:gray ></span>
+   141    <span style=background-color:white;color:black >            </span><span style=background-color:white;color:black >remainingFrom </span><span style=background-color:white;color:black >vestingTranche1 </span><span style=background-color:white;color:black >txInfoValidRange</span><span style=background-color:white;color:black ></span><span style=background-color:lightgray;color:gray ></span>
+   142    <span style=background-color:white;color:black >            + </span><span style=background-color:white;color:black >remainingFrom </span><span style=background-color:white;color:black >vestingTranche2 </span><span style=background-color:white;color:black >txInfoValidRange</span><span style=background-color:white;color:lightgreen ></span><span style=background-color:lightgray;color:gray ></span>
+   143    <span style=background-color:white;color:lightgreen ></span><span style=background-color:lightgray;color:gray ></span>
+   144    <span style=background-color:white;color:lightgreen >    in </span><span style=background-color:white;color:black >remainingActual </span><span style=background-color:white;color:lightgreen >`Value.geq` </span><span style=background-color:white;color:black >remainingExpected</span><span style=background-color:white;color:lightgreen ></span><span style=background-color:lightgray;color:gray ></span>
+   145    <span style=background-color:white;color:lightgreen >            -- The policy encoded in this contract</span><span style=background-color:lightgray;color:gray ></span>
+   146    <span style=background-color:white;color:lightgreen >            -- is &quot;vestingOwner can do with the funds what they want&quot; (as opposed</span><span style=background-color:lightgray;color:gray ></span>
+   147    <span style=background-color:white;color:lightgreen >            -- to &quot;the funds must be paid to vestingOwner&quot;). This is enforcey by</span><span style=background-color:lightgray;color:gray ></span>
+   148    <span style=background-color:white;color:lightgreen >            -- the following condition:</span><span style=background-color:lightgray;color:gray ></span>
+   149    <span style=background-color:white;color:lightgreen >            &amp;&amp; </span><span style=background-color:white;color:lightgreen >V2.txSignedBy </span><span style=background-color:white;color:black >txInfo </span><span style=background-color:white;color:black >(unPaymentPubKeyHash vestingOwner)</span><span style=background-color:lightgray;color:gray ></span>
+   150    <span style=background-color:lightgray;color:gray >            -- That way the recipient of the funds can pay them to whatever address they</span>
+   151    <span style=background-color:lightgray;color:gray >            -- please, potentially saving one transaction.</span>
+   152    <span style=background-color:lightgray;color:gray ></span>
+   153    <span style=background-color:lightgray;color:gray >vestingScript :: VestingParams -&gt; Validator</span>
+   154    <span style=background-color:lightgray;color:gray >vestingScript = Scripts.validatorScript . typedValidator</span>
+.
+.
+.
+   236    <span style=background-color:lightgray;color:gray >                  &lt;&gt; Constraints.unspentOutputs unspentOutputs) tx</span>
+   237    <span style=background-color:lightgray;color:gray >      &gt;&gt;= adjustUnbalancedTx &gt;&gt;= void . submitUnbalancedTx</span>
+   238    <span style=background-color:lightgray;color:gray >    return liveness</span>
+   239    <span style=background-color:lightgray;color:gray ></span>
+   240    <span style=background-color:lightgray;color:gray >covIdx :: CoverageIndex</span>
+   241    <span style=background-color:lightgray;color:gray >covIdx = computeRefinedCoverageIndex $$(</span><span style=background-color:lightpink;color:black >PlutusTx.compile [|| \a b c d -&gt; check (validate a b c d) ||])</span><span style=background-color:lightgray;color:gray ></span>
+</pre></body>

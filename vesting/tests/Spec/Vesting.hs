@@ -260,7 +260,16 @@ tests =
             Trace.waitNSlots 20
             Trace.callEndpoint @"retrieve funds" hdl1 (totalAmount $ vesting startTime)
             void $ Trace.waitNSlots 2
-
+    , checkPredicate "retrieve too early"
+        (walletFundsChangePlutus w1 (totalAmount $ vesting startTime)
+        .&&. assertNoFailedTransactions
+        .&&. assertDone con (Trace.walletInstanceTag w1) (const True) "should be done")
+        $ do
+            hdl1 <- Trace.activateContractWallet w1 con
+            hdl2 <- Trace.activateContractWallet w2 con
+            Trace.callEndpoint @"vest funds" hdl2 ()
+            Trace.callEndpoint @"retrieve funds" hdl1 (totalAmount $ vesting startTime)
+            void $ Trace.waitNSlots 2
     , goldenPir "test/Spec/vesting.pir" $$(PlutusTx.compile [|| validate ||])
     , HUnit.testCaseSteps "script size is reasonable" $ \step -> reasonable' step (vestingScript $ vesting startTime) 33000
     ]
@@ -325,13 +334,20 @@ simpleVestTest = do
               waitUntilDL 11
               action $ Retrieve w1 (Ada.adaValueOf 10)
 
+-- This should fail
+simpleFailingVestTest :: DL VestingModel ()
+simpleFailingVestTest = do
+              action $ Vest w2
+              action $ Retrieve w1 (Ada.adaValueOf 10)
+
 -- | Certification.
 certification :: Certification VestingModel
 certification = defaultCertification {
     certNoLockedFunds = Just noLockProof,
     certCrashTolerance = Just Instance,
     certUnitTests = Just unitTest,
-    certDLTests = [("Simple vesting test", simpleVestTest)],
+    certDLTests = [("Simple vesting test", simpleVestTest),
+                   ("Simple failing test", simpleFailingVestTest)],
     certCoverageIndex = covIdx
   }
     where unitTest _ = tests

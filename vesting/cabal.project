@@ -1,5 +1,6 @@
 packages: .
           certification
+          plutus-contract-certification
 
 
 index-state: 2023-04-19T00:00:00Z
@@ -43,7 +44,7 @@ source-repository-package
     plutus-ledger
     plutus-script-utils
     plutus-tx-constraints
-    plutus-contract-certification
+    -- plutus-contract-certification
 
 -- We never, ever, want this.
 write-ghc-environment-files: never
