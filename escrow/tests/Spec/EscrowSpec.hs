@@ -63,6 +63,7 @@ instance ContractModel EscrowModel where
   data Action EscrowModel = Pay Int Integer
                           | Redeem Int
                           | Refund Int
+                          | StealRefund Int Int
                           deriving (Eq, Show, Generic)
 
 
@@ -97,20 +98,27 @@ instance ContractModel EscrowModel where
       contributions %= Map.delete w
       deposit (walletAddr $ wallet w) (Ada.adaValueOf $ fromInteger v)
       wait 1
+    StealRefund _ _ -> do
+      wait 2
 
   precondition s a = case a of
     Redeem _ -> (s ^. contractState . contributions . to sum) >= (s ^. contractState . targets . to sum)
              && (s ^. currentSlot < toSlotNo (s ^. contractState . refundSlot))
     Refund w -> s ^. currentSlot >= toSlotNo (s ^. contractState . refundSlot)
-             && Nothing /= (s ^. contractState . contributions . at w)
+                && Nothing /= (s ^. contractState . contributions . at w)
     Pay _ v -> s ^. currentSlot < toSlotNo (s ^. contractState . refundSlot)
-            && Ada.adaValueOf (fromInteger v) `geq` Ada.toValue L.minAdaTxOutEstimated
+             && Ada.adaValueOf (fromInteger v) `geq` Ada.toValue L.minAdaTxOutEstimated
+    StealRefund _ _ -> False
 
+  validFailingAction s (StealRefund w w') = s ^. currentSlot >= toSlotNo (s ^. contractState . refundSlot)
+                                            && Nothing /= (s ^. contractState . contributions . at w')
+                                            && w /= w'
   validFailingAction _ _ = True
 
   arbitraryAction _ = oneof [ Pay <$> genWallet <*> choose @Integer (10, 30)
                             , Redeem <$> genWallet
                             , Refund <$> genWallet
+                            , StealRefund <$> genWallet <*> genWallet
                             ]
                   where
                     genWallet = QC.choose (1, length knownWallets)
@@ -130,7 +138,8 @@ instance RunModel EscrowModel (SuperMockChain ()) where
     redeem (typedValidator modelParams) (wallet w) modelParams
   perform _ (Refund w) _ = voidCatch $ do
     refund (typedValidator modelParams) (wallet w) modelParams
-
+  perform _ (StealRefund w w') _ = voidCatch $ do
+    stealRefund (typedValidator modelParams) (wallet w) (wallet w') modelParams
 
   -- `monitoring` gives us a way to apply `QuickCheck` monitoring
   -- functions like `classify` and `tabulate` to our property to
@@ -275,8 +284,15 @@ unitTest2 = do
              action $ Pay 4 22
              action $ Redeem 1
 
+unitTest3 :: DL EscrowModel ()
+unitTest3 = do
+             action $ Pay 1 16
+             waitUntilDL 40
+             action $ StealRefund 8 1
+
+
 propTest :: Property
-propTest = withMaxSuccess 10 $ forAllDL unitTest2 prop_Escrow
+propTest = withMaxSuccess 10 $ forAllDL unitTest3 prop_Escrow
 
 -- | A standard property that runs the `doubleSatisfaction` threat
 -- model against the auction contract to check for double satisfaction
@@ -290,3 +306,12 @@ certification = defaultCertification {
     certUnitTests = Just tests,
     certDLTests = [("redeem test", unitTest1), ("refund test", unitTest2)]
   }
+
+{-
+*** Failed! Falsified (after 50 tests and 9 shrinks):
+Actions
+ [[+]Pay 1 16,
+  WaitUntil (SlotNo 40),
+  [-]StealRefund 8 1]
+MCEValidationError (Phase2,ScriptFailure (EvaluationError ["Data decoded successfully","Redeemer decoded successfully","Script context decoded successfully","txSignedBy","PT5"] "CekEvaluationFailure: An error has occurred:  User error:\nThe machine terminated because of an error, either from a built-in function or from an explicit use of 'error'."))
+-}

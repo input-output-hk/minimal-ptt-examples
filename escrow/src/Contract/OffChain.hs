@@ -47,7 +47,7 @@ import Control.Lens (review, view, has, only) -- makeClassyPrisms , view)
 import Contract.Escrow
 
 import Control.Monad.Except
-
+import Plutus.Contract qualified as PC
 
 -- Issue 1
 {-
@@ -55,6 +55,22 @@ Could not deduce (PrettyCooked L.PaymentPubKeyHash)
         arising from a use of ‘paysScript’
 
 used to be able to use this
+-}
+
+
+-- this should be fine once we define pay
+{-
+payEp ::
+    forall w s e.
+    ( PC.HasEndpoint "pay-escrow" Value s
+    , AsEscrowError e
+    )
+    => EscrowParams Datum
+    -> Wallet
+    -> PC.Promise w s e L.CardanoTx -- Pl.TxId
+payEp escrow w = PC.promiseMap
+    (PC.mapError (review _EContractError))
+    (PC.endpoint @"pay-escrow" $ pay (typedValidator escrow) w escrow)
 -}
 
 -- cooked-validators/src/Cooked/Skeleton.hs TxOpts
@@ -169,3 +185,34 @@ refund inst submitter escrow = do
     else
       return (RefundSuccess (L.getCardanoTxId tx))
 
+
+stealRefund ::
+    MonadBlockChain m
+    => Pl.TypedValidator Escrow
+    -> Wallet
+    -> Wallet
+    -> EscrowParams Datum
+    -> m L.CardanoTx
+stealRefund inst submitter target escrow = do
+    outputs <-
+      runUtxoSearch $
+        utxosAtSearch (Pl.validatorAddress inst)
+    current <- currentTime
+    let
+      pk = walletPKHash target
+      uouts = refundFilter (L.PaymentPubKeyHash pk) outputs
+      deadline = escrowDeadline escrow
+    validityInterval <- slotRangeAfter deadline
+    tx <- (validateTxSkel $
+            txSkelTemplate
+              { txSkelOpts = def {txOptEnsureMinAda = True},
+                txSkelSigners = [submitter],
+                txSkelIns = Map.fromList (map (\ (or , _) -> ( or , TxSkelRedeemerForScript Refund)) uouts),
+                txSkelValidityRange = validityInterval
+              })
+    if (snd current) <= escrowDeadline escrow
+    then error "refund before deadline"
+    else if uouts == []
+    then error "no scripts to refund"
+    else
+      return tx
