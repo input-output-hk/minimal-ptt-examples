@@ -21,7 +21,8 @@ module Spec.Governance(tests
                       , prop_FinishFast
                       , prop_FinishGovernance
                       , prop_Gov
-                      , prop_NoLockedFunds) where
+                      , prop_NoLockedFunds
+                      , prop_checkLaw) where
 
 import Control.Lens hiding (both, elements)
 import Control.Monad
@@ -63,6 +64,8 @@ import Test.Tasty.QuickCheck hiding ((.&&.))
 
 import Contract.Governance qualified as Gov
 
+
+
 -- Governance model needs to increase the transaction limits in order to run
 options :: CheckOptions
 options = defaultCheckOptionsContractModel & (increaseTransactionLimits . increaseTransactionLimits . increaseTransactionLimits . increaseTransactionLimits)
@@ -78,7 +81,7 @@ data GovernanceModel = GovernanceModel { _state        :: (BuiltinByteString, Bo
                                        , _proposedLaw  :: BuiltinByteString
                                       } deriving (Eq, Show, Data, Generic)
 
-data Phase = Initial | Establishing | Proposing | Voting | Tallying deriving (Eq, Show, Data, Generic)
+data Phase = Initial | Establishing | Proposing | Voting | Tallying | Finish deriving (Eq, Show, Data, Generic)
 
 makeLenses ''GovernanceModel
 
@@ -95,6 +98,7 @@ instance ContractModel GovernanceModel where
                           | NewLaw Wallet BuiltinByteString
                           | AddVote Wallet TokenName Bool
                           | StartProposal Wallet BuiltinByteString TokenName Slot
+                          | CheckLaw Wallet
                           | Tally Wallet
     deriving (Eq, Show, Data, Generic)
 
@@ -134,6 +138,8 @@ instance ContractModel GovernanceModel where
     StartProposal _ _ _ _ -> do
       return ()
       delay 1
+    CheckLaw _    -> do
+      delay 1
     Tally _ -> do
       delay 1
 
@@ -163,8 +169,11 @@ instance ContractModel GovernanceModel where
       curSlot <- viewModelState currentSlot
       when (curSlot <= slot) $ phase .= Voting
       wait 1
-    Tally _ -> do
+    CheckLaw _ -> do
       phase .= Proposing
+      wait 1
+    Tally _ -> do
+      phase .= Finish
       wait 1
 
   -- When the deadline is reached count all the votes and update the law if necessary.
@@ -194,6 +203,8 @@ instance ContractModel GovernanceModel where
       = NewLaw <$> QC.elements testWallets <*> QC.elements laws
     | s ^.contractState . phase == Proposing
       = StartProposal <$> QC.elements testWallets <*> QC.elements laws <*> QC.elements tokens <*> (Slot . QC.getPositive <$> QC.scale (*10) QC.arbitrary)
+    | s ^.contractState . phase == Finish
+      = CheckLaw <$> QC.elements testWallets
     | s ^.contractState . phase == Tallying
       = Tally <$> QC.elements testWallets
     | otherwise
@@ -211,6 +222,7 @@ instance ContractModel GovernanceModel where
     StartProposal w _ t _ -> currentPhase == Proposing
                                 && ownsVotingToken' w t (s ^. contractState . walletTokens)
     Tally _ -> currentPhase == Tallying
+    CheckLaw _ -> currentPhase == Finish
     where currentPhase = s ^. contractState . phase
 
 ownsVotingToken' :: Wallet -> TokenName -> Map Wallet TokenName -> Bool
@@ -233,16 +245,27 @@ testWallets = [w1, w2, w3, w4, w5, w6, w7, w8, w9, w10]
 checkLaw :: DL GovernanceModel ()
 checkLaw = do
   law <- viewContractState $ state . _1
+  cphase <- viewContractState phase
   let checkDatum (TxOutDatumInline _ d) = fmap Gov.getLaw (fromData $ toPlutusData d) == Just law
       checkDatum (TxOutDatumHash _ h) = hashScriptData (fromPlutusData $ toData (Gov.GovState (Gov.Law law) mph Nothing)) == h
       checkDatum _ = False
       mph = Scripts.forwardingMintingPolicyHash (Gov.typedValidator params)
-  observe ("law == " ++ show law) $ \ _ cst ->
-    1 == length [ ()
-                | TxOut addr _ d _ <- Map.elems . unUTxO $ utxo cst
-                , validatorAddress == addr
-                , checkDatum d
-                ]
+  monitor $ QC.tabulate "Phase" [show cphase]
+  when (cphase == Finish) $ do
+    observe ("law == " ++ show law) $ \ _ cst ->
+      1 == length [ ()
+                  | TxOut addr _ d _ <- Map.elems . unUTxO $ utxo cst
+                  , validatorAddress == addr
+                  , checkDatum d
+                  ]
+
+checkLawProp :: DL GovernanceModel ()
+checkLawProp = do
+  anyActions_
+  checkLaw
+
+prop_checkLaw :: QC.Property
+prop_checkLaw = QC.withMaxSuccess 30 $ forAllDL checkLawProp prop_Gov
 
 finishGovernance :: DL GovernanceModel ()
 finishGovernance = do
