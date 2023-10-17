@@ -45,6 +45,18 @@ import Plutus.V1.Ledger.Value hiding (adaSymbol, adaToken)
 
 import Plutus.Contract.Test.Cooked.Certification
 
+import Plutus.V1.Ledger.Value qualified as Plutus hiding (adaSymbol, adaToken)
+
+-- Needed for threat model
+import Ledger.Typed.Scripts qualified as Scripts
+import Contract.Escrow qualified as Impl
+import Cardano.Node.Emulator.Params qualified as Params
+import Cardano.Api.Shelley (toPlutusData)
+import PlutusTx (fromData)
+import Cardano.Api hiding (Value)
+
+
+
 -- | initial distribution s.t. everyone owns five bananas
 testInit :: InitialDistribution
 testInit = initialDistribution [(i, [Ada.lovelaceValueOf 20_000_000]) | i <- knownWallets]
@@ -300,18 +312,28 @@ propTest = withMaxSuccess 10 $ forAllDL unitTest3 prop_Escrow
 prop_doubleSatisfaction :: Actions EscrowModel -> Property
 prop_doubleSatisfaction = propRunActions testInit () (assertThreatModel doubleSatisfaction)
 
+-- | Check that you can't redeem after the deadline and not refund before the deadline.
+validityChecks :: ThreatModel ()
+validityChecks = do
+  let startTime  = TimeSlot.scSlotZeroTime def
+      params     = escrowParams startTime
+      deadline   = toSlotNo . TimeSlot.posixTimeToEnclosingSlot def $ escrowDeadline params
+      scriptAddr = Scripts.validatorCardanoAddressAny Params.testnet $ typedValidator params
+  input <- anyInputSuchThat $ (scriptAddr ==) . addressOf
+  rmdr  <- (fromData . toPlutusData =<<) <$> getRedeemer input
+  case rmdr of
+    Nothing          -> fail "Missing or bad redeemer"
+    Just Impl.Redeem -> shouldNotValidate $ changeValidityRange (TxValidityLowerBound ValidityLowerBoundInBabbageEra deadline,
+                                                                 TxValidityNoUpperBound ValidityNoUpperBoundInBabbageEra)
+    Just Impl.Refund -> shouldNotValidate $ changeValidityRange (TxValidityNoLowerBound,
+                                                                 TxValidityUpperBound ValidityUpperBoundInBabbageEra (deadline - 1))
+
+prop_validityChecks :: Actions EscrowModel -> Property
+prop_validityChecks = propRunActions testInit () (assertThreatModel validityChecks)
+
 -- | Certification.
 certification :: Certification EscrowModel
 certification = defaultCertification {
     certUnitTests = Just tests,
     certDLTests = [("redeem test", unitTest1), ("refund test", unitTest2)]
   }
-
-{-
-*** Failed! Falsified (after 50 tests and 9 shrinks):
-Actions
- [[+]Pay 1 16,
-  WaitUntil (SlotNo 40),
-  [-]StealRefund 8 1]
-MCEValidationError (Phase2,ScriptFailure (EvaluationError ["Data decoded successfully","Redeemer decoded successfully","Script context decoded successfully","txSignedBy","PT5"] "CekEvaluationFailure: An error has occurred:  User error:\nThe machine terminated because of an error, either from a built-in function or from an explicit use of 'error'."))
--}
