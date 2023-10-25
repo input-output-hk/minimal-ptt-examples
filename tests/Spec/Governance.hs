@@ -22,7 +22,8 @@ module Spec.Governance(tests
                       , prop_FinishGovernance
                       , prop_Gov
                       , prop_NoLockedFunds
-                      , prop_checkLaw) where
+                      , prop_checkLaw
+                      , certification) where
 
 import Control.Lens hiding (both, elements)
 import Control.Monad
@@ -48,6 +49,7 @@ import Wallet.Emulator qualified as EM
 import Plutus.Contract (EmptySchema)
 import Plutus.Contract.Test
 import Plutus.Contract.Test.ContractModel
+import Plutus.Contract.Test.Certification
 import Plutus.Script.Utils.Ada qualified as Ada
 import Plutus.Script.Utils.Value (TokenName)
 import Plutus.Trace.Emulator (EmulatorTrace)
@@ -62,9 +64,8 @@ import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit qualified as HUnit
 import Test.Tasty.QuickCheck hiding ((.&&.))
 
+
 import Contract.Governance qualified as Gov
-
-
 
 -- Governance model needs to increase the transaction limits in order to run
 options :: CheckOptions
@@ -414,3 +415,11 @@ doVoting ayes nays rounds = do
             Trace.waitNSlots 15
 
     traverse_ votingRound (zip [1..rounds] (cycle [lawv2, lawv3]))
+
+certification :: Certification GovernanceModel
+certification = defaultCertification {
+    certNoLockedFunds = Just noLockProof,
+    certUnitTests = Just unitTest,
+    certDLTests = [("check law on single run", checkDL), ("check law across model", checkLawProp)]
+  }
+  where unitTest _ = tests
