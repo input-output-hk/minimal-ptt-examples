@@ -23,6 +23,7 @@ module Spec.Governance(tests
                       , prop_Gov
                       , prop_NoLockedFunds
                       , prop_checkLaw
+                      , GovernanceModel
                       , certification) where
 
 import Control.Lens hiding (both, elements)
@@ -266,7 +267,7 @@ checkLawProp = do
   checkLaw
 
 prop_checkLaw :: QC.Property
-prop_checkLaw = QC.withMaxSuccess 30 $ forAllDL checkLawProp prop_Gov
+prop_checkLaw = QC.withMaxSuccess 100 $ forAllDL checkLawProp prop_Gov
 
 finishGovernance :: DL GovernanceModel ()
 finishGovernance = do
@@ -418,6 +419,7 @@ doVoting ayes nays rounds = do
 
 certification :: Certification GovernanceModel
 certification = defaultCertification {
+    certCoverageIndex = Gov.covIdx',
     certNoLockedFunds = Just noLockProof,
     certUnitTests = Just unitTest,
     certDLTests = [("check law on single run", checkDL), ("check law across model", checkLawProp)],
