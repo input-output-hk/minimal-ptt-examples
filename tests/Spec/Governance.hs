@@ -420,6 +420,7 @@ certification :: Certification GovernanceModel
 certification = defaultCertification {
     certNoLockedFunds = Just noLockProof,
     certUnitTests = Just unitTest,
-    certDLTests = [("check law on single run", checkDL), ("check law across model", checkLawProp)]
+    certDLTests = [("check law on single run", checkDL), ("check law across model", checkLawProp)],
+    certCheckOptions = Just options
   }
   where unitTest _ = tests
