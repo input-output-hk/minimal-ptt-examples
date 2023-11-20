@@ -19,7 +19,7 @@
         rootProject = internal-lib.make-haskell-nix-pkg {
           inherit (inputs) haskellNix CHaP;
           inherit pkgs;
-          src = "${self}/escrow";
+          src = "${self}/lotto/offchain";
           compiler-nix-name = "ghc8107";
         };
         flake = rootProject.flake { };
