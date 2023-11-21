@@ -43,7 +43,7 @@ source-repository-package
     plutus-ledger
     plutus-script-utils
     plutus-tx-constraints
-    plutus-contract-certification
+    -- plutus-contract-certification
 
 -- We never, ever, want this.
 write-ghc-environment-files: never
@@ -211,3 +211,9 @@ source-repository-package
       libs/small-steps-test
       libs/non-integral
     --sha256: 1jg1h05gcms119mw7fz798xpj3hr5h426ga934vixmgf88m1jmfx
+
+source-repository-package
+    type: git
+    location: https://github.com/Ali-Hill/plutus-contract-certification/
+    tag: 3a868bd0a25d9a1438ab56e9a0f3fde8a1018aff
+    --sha256: sha256-2xhpXnSEkTueRXOlc2qY2+Dx8zPD+jCGWTKWo6hRw68=

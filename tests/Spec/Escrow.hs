@@ -58,6 +58,8 @@ import Test.Tasty
 import Test.Tasty.HUnit qualified as HUnit
 import Test.Tasty.QuickCheck hiding ((.&&.))
 
+import Plutus.Contract.Test.Certification.Run
+
 import Spec.Endpoints
 
 data EscrowModel = EscrowModel { _contributions :: Map Wallet Value
@@ -423,6 +425,7 @@ certification = defaultCertification {
     certCrashTolerance = Just Instance,
     certUnitTests = Just unitTest,
     certDLTests = [("redeem test", unitTest1), ("refund test", unitTest2)],
-    certCoverageIndex      = covIdx
+    certCoverageIndex      = covIdx',
+    certCheckOptions = Just options
   }
   where unitTest _ = tests

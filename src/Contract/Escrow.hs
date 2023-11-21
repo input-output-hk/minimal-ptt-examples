@@ -43,6 +43,7 @@ module Contract.Escrow(
     , Action(..)
     -- * Coverage
     , covIdx
+    , covIdx'
     ) where
 
 import Control.Lens (_1, has, makeClassyPrisms, only, review)
@@ -54,7 +55,7 @@ import GHC.Generics (Generic)
 import PlutusTx qualified
 import PlutusTx.Code
 import PlutusTx.Coverage
-import PlutusTx.Prelude hiding (Applicative (..), Semigroup (..), check, foldMap)
+import PlutusTx.Prelude hiding (Applicative (..), Semigroup (..), foldMap)
 
 import Cardano.Node.Emulator.Params (pNetworkId)
 import Ledger (POSIXTime, PaymentPubKeyHash (unPaymentPubKeyHash), TxId, getCardanoTxId)
@@ -74,6 +75,8 @@ import Plutus.Script.Utils.Value (Value, geq, lt)
 import Plutus.V2.Ledger.Api (Datum (Datum), DatumHash, ValidatorHash)
 import Plutus.V2.Ledger.Contexts (valuePaidTo)
 import Plutus.V2.Ledger.Tx (OutputDatum (OutputDatumHash))
+
+import Plutus.Contract.Test.Coverage.Analysis
 
 import Prelude (Semigroup (..), foldMap)
 import Prelude qualified as Haskell
@@ -379,3 +382,6 @@ payRedeemRefund params vl = do
 
 covIdx :: CoverageIndex
 covIdx = getCovIdx $$(PlutusTx.compile [|| validate ||])
+
+covIdx' :: CoverageIndex
+covIdx' = computeRefinedCoverageIndex $$(PlutusTx.compile [|| \a b c d -> check (validate a b c d) ||])
