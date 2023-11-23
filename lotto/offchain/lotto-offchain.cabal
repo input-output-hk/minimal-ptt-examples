@@ -149,4 +149,6 @@ test-suite spec
     , cooked-validators
     , cooked-contractmodel
     , QuickCheck
+    , lens
+    , mtl
   default-language: Haskell2010
