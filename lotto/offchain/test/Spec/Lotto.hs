@@ -57,6 +57,9 @@ import Data.ByteString as BS
 import Data.Text                  as T
 import Data.Text.Encoding         as T
 
+import qualified Lib
+import qualified Lotto
+
 
 import Cooked.Wallet
 
@@ -70,6 +73,10 @@ testInit = initialDistribution [(i, [Ada.lovelaceValueOf 20_000_000]) | i <- kno
 data LottoModel = LottoModel { _guesses       :: Map Int String
                              -- , _refundSlot    :: L.Slot
                              , _secret        :: String
+                             , _txin          :: Maybe SymTxIn
+                             , _txout         :: Maybe SymTxOut
+                             , _token         :: Maybe SymToken
+                             , _value         :: Maybe SymValue
                              } deriving (Eq, Show, Generic)
 
 makeLenses 'LottoModel
@@ -81,6 +88,8 @@ makeLenses 'LottoModel
 -- mintseal
 -- play
 -- resolve
+
+-- This example will need to use SymValue, SymTxIn etc.
 
 instance ContractModel LottoModel where
   data Action LottoModel =  Open String String
@@ -103,10 +112,15 @@ instance ContractModel LottoModel where
                               --                . escrowDeadline
                               --                $ modelParams
                              , _secret       = "secret"
+                             , _txin         = Nothing
+                             , _txout        = Nothing
+                             , _token        = Nothing
+                             , _value        = Nothing
                              }
 
   nextState a = void $ case a of
     Open secret salt -> do
+
       -- withdraw (walletAddr $ wallet w) (Ada.adaValueOf $ fromInteger v)
       -- contributions %= Map.insertWith (+) w v
       wait 1
@@ -159,6 +173,18 @@ voidCatch m = catchError (void m) (\ _ -> pure ())
 instance RunModel LottoModel (SuperMockChain ()) where
   -- `perform` runs API actions by calling the off-chain code of
   -- the contract in the `SuperMockChain` monad.
+
+  perform _ (Open s slt) _ = voidCatch $ do
+    let
+      secret = toBuiltinByteString s
+      salt = toBuiltinByteString slt
+      hashedSecret = Lib.hashSecret secret (Just salt)
+    (initLottoRef, initLotto) <- Lotto.open def hashedSecret salt
+    registerTxIn "Lotto TxIn"  (toTxIn initLottoRef)
+    -- we don't need to register the txout as we only care about the value
+
+
+  -- peform _ _ _ = voidCatch $ error ()
 
  {-
   perform _ (Pay w v) _ = voidCatch $ do
@@ -226,3 +252,11 @@ Outputs dispatching the money among the winners (see Winning).
 
 toBuiltinByteString :: String -> BuiltinByteString
 toBuiltinByteString s = LedgerV2.toBuiltin $ T.encodeUtf8 (T.pack s)
+
+{-
+  open produces --  m (LedgerV2.TxOutRef, LedgerV2.TxOut)
+
+  mint produces -- -- | The new (authentic) lotto and the name of the seal.
+    (authenticatedLottoRef, authenticatedLotto, seal) <-
+  m (LedgerV2.TxOutRef, LedgerV2.TxOut, LedgerV2.TokenName)
+-}
