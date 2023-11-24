@@ -91,6 +91,14 @@ makeLenses 'LottoModel
 
 -- This example will need to use SymValue, SymTxIn etc.
 
+-- As far as I am aware the model only needs to track
+  -- The guesses
+  -- The total value gambled
+  -- The name of the seal
+  -- The datum in the TxIn
+
+-- All the references to TxOut in play, open and minted are only used to keep track of the value / the token name of the seal which we should be able to work out in the model.
+
 instance ContractModel LottoModel where
   data Action LottoModel =  Open String String
                           | MintSeal Int -- LedgerV2.TxOutRef LedgerV2.Value
@@ -120,16 +128,31 @@ instance ContractModel LottoModel where
 
   nextState a = void $ case a of
     Open secret salt -> do
+      -- needs to create txin with what is in the datum
+      -- the value that is used to open the contract is stored
+        -- it is always Lib.ada (10)
 
       -- withdraw (walletAddr $ wallet w) (Ada.adaValueOf $ fromInteger v)
       -- contributions %= Map.insertWith (+) w v
       wait 1
     MintSeal w -> do
+      -- Now _value needs to add the minted value e.g.
+        -- LedgerV2.Value $ Map.singleton currency $ Map.singleton sealName 1
+      -- Should also store the tokenName of the seal
+      -- Datum does not change
+
       {- -v <- viewContractState $ contributions . at w . to sum -- to fold
       contributions %= Map.delete w
       deposit (walletAddr $ wallet w) (Ada.adaValueOf $ fromInteger v) -}
       wait 1
     Play g w a -> do
+      -- model
+        -- add gambled value to the total _value
+        -- add guess to _guesses map
+      -- datum
+        -- update datum with player guess
+        -- can be don with Data.addplayer
+
       {- -targets <- viewContractState targets
       contribs <- viewContractState contributions
       sequence_ [ deposit (walletAddr (wallet w)) (Ada.adaValueOf $ fromInteger v) | (w, v) <- Map.toList targets ]
@@ -138,6 +161,7 @@ instance ContractModel LottoModel where
       contributions .= Map.empty -}
       wait 1
     Resolve s -> do
+      -- will look into later
       wait 1
 
   precondition s a = True
