@@ -42,8 +42,10 @@ tests =
         Scenarii.tryTokenDuplication,
       testCase "Three players" . Testing.testSucceeds def $
         Scenarii.aliceBobandJanePlay def "salt" "secret",
-      testCase "Three players sequence" . Testing.testSucceeds def $
-        Scenarii.manyWalletPlay def "salt" "secret"
+      testCase "Many player sequence" . Testing.testSucceeds def $
+        Scenarii.manyWalletPlay def "salt" "secret",
+      testCase "Many player sequence with resolve'" . Testing.testSucceeds def $
+        Scenarii.manyWalletPlay' def "salt" "secret"
     ]
 
 main :: IO ()

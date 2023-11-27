@@ -495,3 +495,35 @@ manyWalletPlay setup salt secret = do
     multiplePlays salt secret seal alicePlays (map Cooked.wallet [3..7])
     -- will cause CekEvaluationError once wallet size reaches: [3..8]
   void $ Lotto.resolve secret manyPlays seal
+
+
+helper :: (LedgerV2.TxOutRef, LedgerV2.TxOut) -> (LedgerV2.TxOutRef, LedgerV2.Value)
+helper (ref , out) = (ref , view Cooked.outputValueL out)
+
+-- | A trace where a list of wallets play using alternate resolve' that takes in a
+-- LedgerV2.Value instead of LedgerV2.TxOut as an input
+manyWalletPlay' ::
+  Cooked.MonadModalBlockChain m =>
+  Lotto.Setup ->
+  -- | Salt
+  BuiltinByteString ->
+  -- | Secret
+  BuiltinByteString ->
+  m ()
+manyWalletPlay' setup salt secret = do
+  let hashedSecret = Lib.hashSecret secret (Just salt)
+  (initLottoRef, initLotto) <- Lotto.open setup hashedSecret salt
+  (authenticatedLottoRef, authenticatedLotto, seal) <-
+    Lotto.mintSeal initLottoRef (initLotto ^. Cooked.outputValueL)
+  alicePlays <-
+    Lotto.play
+      authenticatedLottoRef
+      seal
+      (authenticatedLotto ^. Cooked.outputValueL)
+      (Lib.hashSecret "alice" (Just salt))
+      alice
+      (Lib.ada 10)
+  manyPlays <-
+    multiplePlays salt secret seal alicePlays (map Cooked.wallet [3..7])
+    -- will cause CekEvaluationError once wallet size reaches: [3..8]
+  void $ Lotto.resolve' secret (helper manyPlays) seal
