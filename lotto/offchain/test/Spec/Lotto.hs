@@ -66,6 +66,9 @@ import Cooked.Wallet
 import Prelude hiding ((-))
 import qualified Plutus.V2.Ledger.Api as LedgerV2
 
+import Ledger.Tx.CardanoAPI qualified as Plutus
+import Data.Maybe
+
 -- | initial distribution s.t. everyone owns five bananas
 testInit :: InitialDistribution
 testInit = initialDistribution [(i, [Ada.lovelaceValueOf 20_000_000]) | i <- knownWallets]
@@ -73,10 +76,12 @@ testInit = initialDistribution [(i, [Ada.lovelaceValueOf 20_000_000]) | i <- kno
 data LottoModel = LottoModel { _guesses       :: Map Int String
                              -- , _refundSlot    :: L.Slot
                              , _secret        :: String
-                             , _txin          :: Maybe SymTxIn
-                             , _txout         :: Maybe SymTxOut
+                             , _salt          :: String
+                             , _txIn          :: Maybe SymTxIn
                              , _token         :: Maybe SymToken
-                             , _value         :: Maybe SymValue
+                             , _value         :: Integer
+--                             , _value         :: Maybe SymValue
+                             , _tName         :: String
                              } deriving (Eq, Show, Generic)
 
 makeLenses 'LottoModel
@@ -101,14 +106,9 @@ makeLenses 'LottoModel
 
 instance ContractModel LottoModel where
   data Action LottoModel =  Open String String
-                          | MintSeal Int -- LedgerV2.TxOutRef LedgerV2.Value
-                          | Play --  LedgerV2.TxOutRef
-                                 -- LedgerV2.TokenName
-                                 -- LedgerV2.Value
-                                 String
-                                 Int
-                                 Int
-                          | Resolve String
+                          | MintSeal
+                          | Play String Integer Int
+                          | Resolve
                                     -- (LedgerV2.TxOutRef, LedgerV2.TxOut)
                                     -- LedgerV2.TokenName
                           deriving (Eq, Show, Generic)
@@ -119,11 +119,12 @@ instance ContractModel LottoModel where
                              -- , _refundSlot    = TimeSlot.posixTimeToEnclosingSlot def
                               --                . escrowDeadline
                               --                $ modelParams
-                             , _secret       = "secret"
-                             , _txin         = Nothing
-                             , _txout        = Nothing
+                             , _secret       = ""
+                             , _salt         = ""
+                             , _txIn         = Nothing
                              , _token        = Nothing
-                             , _value        = Nothing
+                             , _value        = 0
+                             , _tName        = ""
                              }
 
   nextState a = void $ case a of
@@ -135,17 +136,19 @@ instance ContractModel LottoModel where
       -- withdraw (walletAddr $ wallet w) (Ada.adaValueOf $ fromInteger v)
       -- contributions %= Map.insertWith (+) w v
       wait 1
-    MintSeal w -> do
+    MintSeal -> do
       -- Now _value needs to add the minted value e.g.
         -- LedgerV2.Value $ Map.singleton currency $ Map.singleton sealName 1
       -- Should also store the tokenName of the seal
       -- Datum does not change
 
+      -- toString will change tokenName to string
+
       {- -v <- viewContractState $ contributions . at w . to sum -- to fold
       contributions %= Map.delete w
       deposit (walletAddr $ wallet w) (Ada.adaValueOf $ fromInteger v) -}
       wait 1
-    Play g w a -> do
+    Play g v w -> do
       -- model
         -- add gambled value to the total _value
         -- add guess to _guesses map
@@ -160,7 +163,7 @@ instance ContractModel LottoModel where
       deposit (walletAddr $ wallet w) (Ada.adaValueOf $ fromInteger leftoverValue)
       contributions .= Map.empty -}
       wait 1
-    Resolve s -> do
+    Resolve -> do
       -- will look into later
       wait 1
 
@@ -205,21 +208,29 @@ instance RunModel LottoModel (SuperMockChain ()) where
       hashedSecret = Lib.hashSecret secret (Just salt)
     (initLottoRef, initLotto) <- Lotto.open def hashedSecret salt
     registerTxIn "Lotto TxIn"  (toTxIn initLottoRef)
-    -- we don't need to register the txout as we only care about the value
-
-
-  -- peform _ _ _ = voidCatch $ error ()
-
- {-
-  perform _ (Pay w v) _ = voidCatch $ do
-    pay (typedValidator modelParams) (wallet w) modelParams (Ada.adaValueOf $ fromInteger v)
-  perform _ (Redeem w) _ = voidCatch $ do
-    redeem (typedValidator modelParams) (wallet w) modelParams
-  perform _ (Refund w) _ = voidCatch $ do
-    refund (typedValidator modelParams) (wallet w) modelParams
-  perform _ (StealRefund w w') _ = voidCatch $ do
-    stealRefund (typedValidator modelParams) (wallet w) (wallet w') modelParams
--}
+  perform s MintSeal translate = voidCatch $ do
+    let mref = translate <$> s ^. contractState . txIn
+        lotto = s ^. contractState . value
+    Lotto.mintSeal (Plutus.fromCardanoTxIn $ fromJust mref) (Ada.adaValueOf $ fromInteger lotto)
+  perform s (Play g v w) translate = voidCatch $ do
+    let mref  = translate <$> s ^. contractState . txIn
+        seal  = s ^. contractState . tName
+        lotto = s ^. contractState . value
+        slt   = s ^. contractState . salt
+    Lotto.play (Plutus.fromCardanoTxIn $ fromJust mref)
+               (toTokenName seal)
+               (Ada.adaValueOf $ fromInteger lotto)
+               (Lib.hashSecret (toBuiltinByteString g) (Just (toBuiltinByteString slt)))
+               (wallet w)
+               (Ada.adaValueOf $ fromInteger v)
+  perform s Resolve translate = voidCatch $ do
+    let mref  = translate <$> s ^. contractState . txIn
+        lotto = s ^. contractState . value
+        scrt  = s ^. contractState . secret
+        seal  = s ^. contractState . tName
+    Lotto.resolve' (toBuiltinByteString scrt)
+                   ((Plutus.fromCardanoTxIn $ fromJust mref) , (Ada.adaValueOf $ fromInteger lotto))
+                   (toTokenName seal)
 
   -- we shall not do monitoring yet
   -- monitoring
@@ -276,6 +287,9 @@ Outputs dispatching the money among the winners (see Winning).
 
 toBuiltinByteString :: String -> BuiltinByteString
 toBuiltinByteString s = LedgerV2.toBuiltin $ T.encodeUtf8 (T.pack s)
+
+toTokenName :: String -> LedgerV2.TokenName
+toTokenName s = tokenName $ T.encodeUtf8 (T.pack s)
 
 {-
   open produces --  m (LedgerV2.TxOutRef, LedgerV2.TxOut)
