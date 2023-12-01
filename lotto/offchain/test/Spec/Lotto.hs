@@ -52,6 +52,7 @@ import Test.QuickCheck.ContractModel.ThreatModel qualified as TM
 
 import PlutusTx.Prelude (BuiltinByteString)
 import Data.ByteString qualified as BS
+import PlutusTx.Builtins       qualified as Builtins
 
 
 import Data.Text qualified as T
@@ -69,7 +70,14 @@ import qualified Plutus.V2.Ledger.Api as LedgerV2
 import Ledger.Tx.CardanoAPI qualified as Plutus
 import Data.Maybe
 
--- | initial distribution s.t. everyone owns five bananas
+import qualified Plutus.Script.Utils.Typed as TScripts
+
+import qualified PlutusTx.AssocMap as AssocMap
+
+
+
+
+-- | initial distribution
 testInit :: InitialDistribution
 testInit = initialDistribution [(i, [Ada.lovelaceValueOf 20_000_000]) | i <- knownWallets]
 
@@ -132,20 +140,24 @@ instance ContractModel LottoModel where
                              }
 
   nextState a = void $ case a of
-    Open secret salt -> do
+    Open scrt slt -> do
       theTxIn <- createTxIn "Lotto txIn"
       txIn        .= Just theTxIn
       -- needs to create txin with what is in the datum
       -- the value that is used to open the contract is stored
         -- it is always Lib.ada (10)
-
-      -- withdraw (walletAddr $ wallet w) (Ada.adaValueOf $ fromInteger v)
-      -- contributions %= Map.insertWith (+) w v
+      value .= 10
+      withdraw (walletAddr Lotto.organiser)  (Lib.ada 10)
+      secret .= scrt
+      salt .= slt
       phase .= Minting
       wait 1
     MintSeal _ -> do
       theTxIn <- createTxIn "Lotto txIn"
       txIn        .= Just theTxIn
+      sealToken <- createToken "Lotto token"
+      token .= Just sealToken
+
       -- Now _value needs to add the minted value e.g.
         -- LedgerV2.Value $ Map.singleton currency $ Map.singleton sealName 1
       -- Should also store the tokenName of the seal
@@ -156,6 +168,8 @@ instance ContractModel LottoModel where
       {- -v <- viewContractState $ contributions . at w . to sum -- to fold
       contributions %= Map.delete w
       deposit (walletAddr $ wallet w) (Ada.adaValueOf $ fromInteger v) -}
+
+
       phase .= Playing
       wait 1
     Play g v w -> do
@@ -167,6 +181,9 @@ instance ContractModel LottoModel where
       -- datum
         -- update datum with player guess
         -- can be don with Data.addplayer
+      withdraw (walletAddr $ wallet w) (Ada.adaValueOf $ fromInteger v)
+
+      value += v
 
       {- -targets <- viewContractState targets
       contribs <- viewContractState contributions
@@ -174,6 +191,7 @@ instance ContractModel LottoModel where
       let leftoverValue = sum contribs - sum targets
       deposit (walletAddr $ wallet w) (Ada.adaValueOf $ fromInteger leftoverValue)
       contributions .= Map.empty -}
+      -- phase .= Resolving
       wait 1
     Resolve _ -> do
       -- will look into later
@@ -217,32 +235,39 @@ instance RunModel LottoModel (SuperMockChain ()) where
   -- `perform` runs API actions by calling the off-chain code of
   -- the contract in the `SuperMockChain` monad.
 
-  perform _ (Open s slt) _ = voidCatch $ do
+  perform _ (Open s slt) _ = void $ do
     let
       secret = toBuiltinByteString s
       salt = toBuiltinByteString slt
       hashedSecret = Lib.hashSecret secret (Just salt)
     (initLottoRef, initLotto) <- Lotto.open def hashedSecret salt
     registerTxIn "Lotto txIn"  (toTxIn initLottoRef)
-  perform s (MintSeal _) translate = voidCatch $ do
+  perform s (MintSeal _) translate = void $ do
     let mref = translate <$> s ^. contractState . txIn
         lotto = s ^. contractState . value
+        sealPolicy = TScripts.Versioned (Lib.mkMintingPolicy Lotto.script) TScripts.PlutusV2
+        currency = L.scriptCurrencySymbol sealPolicy
     (ref, txout, tname) <- Lotto.mintSeal (Plutus.fromCardanoTxIn $ fromJust mref)
                                           (Ada.adaValueOf $ fromInteger lotto)
     registerTxIn "Lotto txIn"  (toTxIn ref)
-  perform s (Play g v w) translate = voidCatch $ do
+    registerToken "Lotto token" (toAssetId (assetClass currency tname))
+  perform s (Play g v w) translate = void $ do
     let mref  = translate <$> s ^. contractState . txIn
-        seal  = s ^. contractState . tName
+        seal  = translate <$> s ^. contractState . token
         lotto = s ^. contractState . value
         slt   = s ^. contractState . salt
+        sealPolicy = TScripts.Versioned (Lib.mkMintingPolicy Lotto.script) TScripts.PlutusV2
+        currency = L.scriptCurrencySymbol sealPolicy
+        sealName = (getTokenName $ fromJust seal)
+        mintVal = LedgerV2.Value $ AssocMap.singleton currency $ AssocMap.singleton sealName 1
     (ref, txout) <- Lotto.play (Plutus.fromCardanoTxIn $ fromJust mref)
-                      (toTokenName seal)
-                      (Ada.adaValueOf $ fromInteger lotto)
+                      sealName
+                      (mintVal <> (Ada.adaValueOf $ fromInteger lotto))
                       (Lib.hashSecret (toBuiltinByteString g) (Just (toBuiltinByteString slt)))
                       (wallet w)
                       (Ada.adaValueOf $ fromInteger v)
     registerTxIn "Lotto txIn"  (toTxIn ref)
-  perform s (Resolve _) translate = voidCatch $ do
+  perform s (Resolve _) translate = void $ do
     let mref  = translate <$> s ^. contractState . txIn
         lotto = s ^. contractState . value
         scrt  = s ^. contractState . secret
@@ -257,9 +282,12 @@ instance RunModel LottoModel (SuperMockChain ()) where
 -- | A standard property that tests that the balance changes
 -- predicted by the `ContractModel` instance match the balance changes produced
 -- by the `RunModel` instance - up to minimum ada requirements on UTxOs.
-prop_Lotto :: Actions LottoModel -> Property
-prop_Lotto = propRunActions testInit () balanceChangePredicate
+prop_Lotto :: Property
+prop_Lotto = QC.withMaxSuccess 10 $ (propRunActions @LottoModel testInit () balanceChangePredicate)
 
+
+getTokenName :: AssetId -> TokenName
+getTokenName (AssetId sym (AssetName tok)) = TokenName (Builtins.toBuiltin tok)
 
 secrets :: [ String ]
 secrets = ["bob", "alice", "jane", "steven"]
