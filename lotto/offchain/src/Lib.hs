@@ -26,6 +26,7 @@ module Lib
     txOutRefToToken,
     constantScore,
     scoreDiffZeros,
+    scoreDiffZeros',
     payGamblers,
     -- Skeleton validations and output selection
     validateAndGetOuts,
@@ -247,6 +248,11 @@ scoreDiffZeros :: Score
 scoreDiffZeros secret guess = Tx.lengthOfByteString secret - abs (numZero secret - numZero guess)
   where
     numZero = foldBS (\n acc -> if n == 0 then acc + 1 else acc) 1
+
+scoreDiffZeros' :: Score
+scoreDiffZeros' secret guess = abs (numZero secret - numZero guess)
+  where
+    numZero = foldBS (\n acc -> if n == 0 then acc + 1 else acc) 0
 
 payGamblers ::
   -- | Score computation

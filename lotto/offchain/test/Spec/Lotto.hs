@@ -50,7 +50,7 @@ import PlutusTx (fromData)
 import Cardano.Api hiding (Value)
 import Test.QuickCheck.ContractModel.ThreatModel qualified as TM
 
-import PlutusTx.Prelude (BuiltinByteString)
+import PlutusTx.Prelude (BuiltinByteString, unsafeRatio, (-))
 import Data.ByteString qualified as BS
 import PlutusTx.Builtins       qualified as Builtins
 
@@ -81,15 +81,16 @@ import qualified PlutusTx.AssocMap as AssocMap
 testInit :: InitialDistribution
 testInit = initialDistribution [(i, [Ada.lovelaceValueOf 20_000_000]) | i <- knownWallets]
 
-data LottoModel = LottoModel { _guesses       :: Map Int String
+data LottoModel = LottoModel { _guesses       :: [(Int, String)]
                              -- , _refundSlot    :: L.Slot
                              , _secret        :: String
                              , _salt          :: String
                              , _txIn          :: Maybe SymTxIn
-                             , _token         :: Maybe SymToken
+                             , _token         :: Maybe SymToken -- look into burning
                              , _value         :: Integer
 --                             , _value         :: Maybe SymValue
-                             , _tName         :: String
+                             -- , _tName         :: String
+                             , _endSlot       :: SlotNo
                              , _phase         :: Phase
                              } deriving (Eq, Show, Generic)
 
@@ -120,36 +121,33 @@ instance ContractModel LottoModel where
                           | MintSeal Int
                           | Play String Integer Int
                           | Resolve Int
-                                    -- (LedgerV2.TxOutRef, LedgerV2.TxOut)
-                                    -- LedgerV2.TokenName
                           deriving (Eq, Show, Generic)
 
-
-  -- need to do
-  initialState = LottoModel { _guesses = Map.empty
-                             -- , _refundSlot    = TimeSlot.posixTimeToEnclosingSlot def
-                              --                . escrowDeadline
-                              --                $ modelParams
+  initialState = LottoModel { _guesses = []
                              , _secret       = ""
                              , _salt         = ""
                              , _txIn         = Nothing
                              , _token        = Nothing
                              , _value        = 0
-                             , _tName        = ""
+                             , _endSlot      = 0
                              , _phase        = Initial
                              }
 
   nextState a = void $ case a of
     Open scrt slt -> do
+      curSlot <- viewModelState currentSlot
+
+      let deadline = toSlotNo . TimeSlot.posixTimeToEnclosingSlot def
+                     $ TimeSlot.nominalDiffTimeToPOSIXTime (Lotto.duration def)
+
       theTxIn <- createTxIn "Lotto txIn"
       txIn        .= Just theTxIn
-      -- needs to create txin with what is in the datum
-      -- the value that is used to open the contract is stored
-        -- it is always Lib.ada (10)
       value .= 10
-      withdraw (walletAddr Lotto.organiser)  (Lib.ada 10)
+      guesses .= []
+      withdraw (walletAddr Lotto.organiser) (Lib.ada 10)
       secret .= scrt
       salt .= slt
+      endSlot .= curSlot + 5
       phase .= Minting
       wait 1
     MintSeal _ -> do
@@ -157,50 +155,41 @@ instance ContractModel LottoModel where
       txIn        .= Just theTxIn
       sealToken <- createToken "Lotto token"
       token .= Just sealToken
-
-      -- Now _value needs to add the minted value e.g.
-        -- LedgerV2.Value $ Map.singleton currency $ Map.singleton sealName 1
-      -- Should also store the tokenName of the seal
-      -- Datum does not change
-
-      -- toString will change tokenName to string
-
-      {- -v <- viewContractState $ contributions . at w . to sum -- to fold
-      contributions %= Map.delete w
-      deposit (walletAddr $ wallet w) (Ada.adaValueOf $ fromInteger v) -}
-
-
       phase .= Playing
       wait 1
     Play g v w -> do
       theTxIn <- createTxIn "Lotto txIn"
       txIn        .= Just theTxIn
-      -- model
-        -- add gambled value to the total _value
-        -- add guess to _guesses map
-      -- datum
-        -- update datum with player guess
-        -- can be don with Data.addplayer
       withdraw (walletAddr $ wallet w) (Ada.adaValueOf $ fromInteger v)
-
       value += v
-
-      {- -targets <- viewContractState targets
-      contribs <- viewContractState contributions
-      sequence_ [ deposit (walletAddr (wallet w)) (Ada.adaValueOf $ fromInteger v) | (w, v) <- Map.toList targets ]
-      let leftoverValue = sum contribs - sum targets
-      deposit (walletAddr $ wallet w) (Ada.adaValueOf $ fromInteger leftoverValue)
-      contributions .= Map.empty -}
-      -- phase .= Resolving
+      guesses %= \ z -> (w , g) : z
       wait 1
     Resolve _ -> do
-      -- will look into later
+      -- Fix This: Get margin properly
+      vl <- viewContractState value
+      sc <- viewContractState secret
+      gs <- viewContractState guesses
+
+      let targets = Lib.payGamblers
+                Lib.scoreDiffZeros
+                vl
+                (unsafeRatio 3 100)
+                (toBuiltinByteString sc)
+                (fixGuesses gs)
+
+      let organiserWinnings = vl - sum (map snd targets)
+
+      deposit (walletAddr Lotto.organiser) (Ada.adaValueOf $ fromInteger organiserWinnings)
+      sequence_ [ deposit (walletAddr w) (Ada.adaValueOf $ fromInteger v) | (w, v) <- targets ]
+
+      phase .= Initial
       wait 1
 
   precondition s a = case a of
     Open secret sale -> currentPhase == Initial
     MintSeal _ -> currentPhase == Minting
-    Play g v w -> currentPhase == Playing
+    Play g v w -> w /= 4 &&
+                  currentPhase == Playing
     Resolve _ -> currentPhase == Resolving
     where currentPhase = s ^. contractState . phase
 
@@ -213,18 +202,14 @@ instance ContractModel LottoModel where
                     genWallet = QC.choose (1, length knownWallets)
 
 
-  -- negative testing is off for now
-  validFailingAction _ _ = False
+  nextReactiveState slot = do
+    deadline <- viewContractState endSlot
+    s <- viewContractState phase
+    when ((slot >= deadline) && (s == Playing)) $ do
+      phase .= Resolving
 
-{-
-  arbitraryAction _ = oneof [ Pay <$> genWallet <*> choose @Integer (10, 30)
-                            , Redeem <$> genWallet
-                            , Refund <$> genWallet
-                            , StealRefund <$> genWallet <*> genWallet
-                            ]
-                  where
-                    genWallet = QC.choose (1, length knownWallets)
--}
+
+  validFailingAction _ _ = False
 
 voidCatch m = catchError (void m) (\ _ -> pure ())
 
@@ -271,10 +256,15 @@ instance RunModel LottoModel (SuperMockChain ()) where
     let mref  = translate <$> s ^. contractState . txIn
         lotto = s ^. contractState . value
         scrt  = s ^. contractState . secret
-        seal  = s ^. contractState . tName
+        seal  = translate <$> s ^. contractState . token
+        sealPolicy = TScripts.Versioned (Lib.mkMintingPolicy Lotto.script) TScripts.PlutusV2
+        currency = L.scriptCurrencySymbol sealPolicy
+        sealName = (getTokenName $ fromJust seal)
+        mintVal = LedgerV2.Value $ AssocMap.singleton currency $ AssocMap.singleton sealName 1
     Lotto.resolve' (toBuiltinByteString scrt)
-                   ((Plutus.fromCardanoTxIn $ fromJust mref) , (Ada.adaValueOf $ fromInteger lotto))
-                   (toTokenName seal)
+                   ((Plutus.fromCardanoTxIn $ fromJust mref) ,
+                    (mintVal <> (Ada.adaValueOf $ fromInteger lotto)))
+                   sealName
 
   -- we shall not do monitoring yet
   -- monitoring
@@ -283,7 +273,7 @@ instance RunModel LottoModel (SuperMockChain ()) where
 -- predicted by the `ContractModel` instance match the balance changes produced
 -- by the `RunModel` instance - up to minimum ada requirements on UTxOs.
 prop_Lotto :: Property
-prop_Lotto = QC.withMaxSuccess 10 $ (propRunActions @LottoModel testInit () balanceChangePredicate)
+prop_Lotto = noShrinking $ QC.withMaxSuccess 100 $ (propRunActions @LottoModel testInit () balanceChangePredicate)
 
 
 getTokenName :: AssetId -> TokenName
@@ -298,60 +288,25 @@ guessOptions = ["bob", "alice", "jane", "steven", "john"]
 salts :: [ String ]
 salts = ["aslkdjs" , "saduenf" , "asjdurnfkli" , "asdlkjasui"]
 
--- Actions
--- open
--- mintseal
--- play
--- resolve
-
-
--- What does a manyWalletPlay do
-
--- Create secret from salt
--- Lotto.open
--- Lotto.mintSeal
--- Some number of plays until deadline
--- administrator resolve play
-
-{-
-The Administrator Creates a UTxO of the Lotto
-Output UTxOs:
-The lotto with some datum. At this point, that could be any datum but people won’t play until one calls Initialise.
-The Administrator Initialises the Game (redeemer Initialise)
-Only allowed for the administrator.
-
-Input UTxOs:
-Any lotto, hereafter called “the” lotto.
-Output UTxOs:
-The lotto with a seal that identifies the instance uniquely and proves that it has been created in a sensible way.
-A Gambler Plays (redeemer Play)
-Only available before deadline.
-
-Input UTxOs:
-The lotto.
-The player carrying enough money.
-Output UTxOs:
-The lotto with (at least bidAmount) more money and an additional entry in players carrying the signatory’s PubKeyHash as well as a word, i.e. some byte String of the player’s choice.
-The Administrator Resolves the Game (redeemer Resolve)
-Only available after deadline.
-
-Input UTxOs:
-The lotto.
-Output UTxOs:
-The administrator getting the leftover money.
-Outputs dispatching the money among the winners (see Winning).
--}
-
 toBuiltinByteString :: String -> BuiltinByteString
 toBuiltinByteString s = LedgerV2.toBuiltin $ T.encodeUtf8 (T.pack s)
 
 toTokenName :: String -> LedgerV2.TokenName
 toTokenName s = tokenName $ T.encodeUtf8 (T.pack s)
 
-{-
-  open produces --  m (LedgerV2.TxOutRef, LedgerV2.TxOut)
+unitTest1 :: DL LottoModel ()
+unitTest1 = do
+             action $ Open "jane" "asldkjk"
+             action $ MintSeal 4
+             action $ Play "bob" 20 8
+             -- waitUntilDL 200000
+             action $ Resolve 4
 
-  mint produces -- -- | The new (authentic) lotto and the name of the seal.
-    (authenticatedLottoRef, authenticatedLotto, seal) <-
-  m (LedgerV2.TxOutRef, LedgerV2.TxOut, LedgerV2.TokenName)
--}
+prop_Lotto' :: Actions LottoModel -> Property
+prop_Lotto' = propRunActions testInit () balanceChangePredicate
+
+propTest :: Property
+propTest = withMaxSuccess 1 $ forAllDL unitTest1 prop_Lotto'
+
+fixGuesses :: [(Int, String)] -> [(Wallet, BuiltinByteString)]
+fixGuesses xs = map (\ (w , s) -> ((wallet w) , toBuiltinByteString s)) xs
