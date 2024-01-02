@@ -1,40 +1,11 @@
-cabal-version:   2.0
+cabal-version:   3.0
 name:            escrow
 version:         1.2.0.0
 maintainer:      alasdair.hill@iohk.io
 author:          Alasdair Hill
 stability:       experimental
-synopsis:
-  Collection of smart contracts to develop the plutus/wallet interface
 
-description:
-  Collection of smart contracts to develop the plutus/wallet interface.
-
-category:        Language
-build-type:      Simple
-extra-doc-files: README.md
-
-source-repository head
-  type:     git
-  location: https://github.com/input-output-hk/plutus-apps
-
-flag defer-plugin-errors
-  description:
-    Defer errors from the plugin, useful for things like Haddock that can't handle it.
-
-  default:     False
-  manual:      True
-
-library
-  exposed-modules:
-    Contract.Escrow
-    Spec.Escrow
-  other-modules:
-    Spec.Endpoints
-
-
-  hs-source-dirs:     src
-                      tests
+common lang
   default-language:   Haskell2010
   default-extensions:
     DeriveFoldable
@@ -43,139 +14,133 @@ library
     DeriveLift
     DeriveTraversable
     ExplicitForAll
+    FlexibleContexts
     GeneralizedNewtypeDeriving
     ImportQualifiedPost
-    MultiParamTypeClasses
+    LambdaCase
+    NamedFieldPuns
     ScopedTypeVariables
     StandaloneDeriving
 
   -- See Plutus Tx readme for why we need the following flags:
   -- -fobject-code -fno-ignore-interface-pragmas and -fno-omit-interface-pragmas
   ghc-options:
-    -Wall -Wnoncanonical-monad-instances -Wunused-packages
-    -Wincomplete-uni-patterns -Wincomplete-record-updates
-    -Wredundant-constraints -Widentities -fobject-code
+    -Wall -Widentities -Wincomplete-record-updates -Wunused-packages
+    -Wincomplete-uni-patterns -Wnoncanonical-monad-instances
+    -Wredundant-constraints -Wmissing-import-lists -fobject-code
     -fno-ignore-interface-pragmas -fno-omit-interface-pragmas
+    -fplugin-opt PlutusTx.Plugin:target-version=1.0.0
 
-  --------------------
-  -- Local components
-  --------------------
-  build-depends:
-      cardano-node-emulator          >=1.1.0
-    , plutus-contract                >=1.1.0
-    , plutus-contract-certification  >=1.1.0
-    , plutus-ledger                  >=1.1.0
-    , plutus-script-utils            >=1.1.0
-    , plutus-tx-constraints          >=1.1.0
-
-  --------------------------
-  -- Other IOG dependencies
-  --------------------------
-  build-depends:
-      cardano-api                  >=1.35
-    , plutus-ledger-api            >=1.0.0
-    , plutus-tx                    >=1.0.0
-    , plutus-tx-plugin
-    , quickcheck-contractmodel     >=0.1.3.0
-    , quickcheck-dynamic           >=3.0.2
-
-  ------------------------
-  -- Non-IOG dependencies
-  ------------------------
-  build-depends:
-      aeson
-    , base               >=4.9     && <5
-    , containers
-    , data-default
-    , lens
-    , mtl
-    , QuickCheck
-    , tasty
-    , tasty-hunit
-    , tasty-quickcheck
-    , text
-
-  if flag(defer-plugin-errors)
-    ghc-options: -fplugin-opt PlutusTx.Plugin:defer-errors
-
-test-suite escrow-test
-  type:               exitcode-stdio-1.0
-  main-is:            Spec.hs
-  hs-source-dirs:     tests
-  other-modules:
+library
+  import:             lang
+  exposed-modules:
+    Contract.Escrow
     Spec.Escrow
-    Spec.Endpoints
 
-  default-language:   Haskell2010
-  default-extensions: ImportQualifiedPost
+  hs-source-dirs:     src
+                      tests
 
-  -- See Plutus Tx readme for why we need the following flags:
-  -- -fobject-code -fno-ignore-interface-pragmas and -fno-omit-interface-pragmas
-  ghc-options:
-    -Wall -Wnoncanonical-monad-instances -Wincomplete-uni-patterns
-    -Wincomplete-record-updates -Wredundant-constraints -Widentities
-    -rtsopts -fobject-code -fno-ignore-interface-pragmas
-    -fno-omit-interface-pragmas
 
   --------------------
   -- Local components
   --------------------
   build-depends:
-      cardano-node-emulator          >=1.1.0
-    , freer-extras                   >=1.1.0
-    , plutus-contract                >=1.1.0
-    , plutus-contract-certification  >=1.1.0
-    , plutus-ledger                  >=1.1.0
-    , plutus-script-utils            >=1.1.0
-    , plutus-tx-constraints          >=1.1.0
-    , escrow                         >=1.1.0
+    cardano-node-emulator  >=1.2.0
+    , freer-extras         >=1.2.0
+    , plutus-ledger        >=1.2.0
+    , plutus-script-utils  >=1.2.0
 
   --------------------------
   -- Other IOG dependencies
   --------------------------
   build-depends:
-      cardano-api                  >=1.35
-    , cardano-binary
+    cardano-api:{cardano-api, gen, internal}
+    , cardano-crypto
     , cardano-ledger-alonzo
+    , cardano-ledger-api
     , cardano-ledger-babbage
     , cardano-ledger-core
     , cardano-ledger-shelley
-    , cardano-ledger-shelley-ma
     , cardano-slotting
     , ouroboros-consensus
-    , ouroboros-consensus-cardano
-    , plutus-ledger-api            >=1.0.0
-    , plutus-tx                    >=1.0.0
-    , plutus-tx-plugin
-    , quickcheck-contractmodel     >=0.1.3.0
-    , quickcheck-dynamic           >=3.0.2
+    , plutus-core                               >=1.0.0
+    , plutus-ledger-api                         >=1.0.0
+    , plutus-tx                                 >=1.0.0
+    , sop-extras
+    , strict-sop-core
 
-  if !(impl(ghcjs) || os(ghcjs))
-    build-depends: plutus-tx-plugin >=1.0.0
 
   ------------------------
   -- Non-IOG dependencies
   ------------------------
   build-depends:
-      aeson
-    , base               >=4.9     && <5
+    aeson                       >=2
+    , base                      >=4.9     && <5
     , bytestring
     , containers
     , data-default
-    , foldl
     , freer-simple
+    , hedgehog
+    , html-entities
     , lens
-    , mmorph
     , mtl
-    , pretty
-    , prettyprinter
+    , prettyprinter             >=1.1.0.1
     , QuickCheck
-    , streaming
-    , strict-containers
+    , quickcheck-contractmodel  >=0.1.5.0
+    , quickcheck-dynamic
+    , quickcheck-threatmodel    >=0.1.5.0
+    , sop-core
+    , tasty
+    , tasty-hunit
+    , text
+    , time
+
+test-suite escrow-test
+  import:             lang
+  type:               exitcode-stdio-1.0
+  main-is:            Spec.hs
+  hs-source-dirs:   src
+                    tests
+  default-language: Haskell2010
+  ghc-options:      -Wno-unused-packages
+  other-modules:
+    Spec.Escrow
+
+  --------------------
+  -- Local components
+  --------------------
+  build-depends:
+    cardano-node-emulator    >=1.2.0
+    , plutus-ledger          >=1.2.0
+    , plutus-script-utils    >=1.2.0
+
+  --------------------------
+  -- Other IOG dependencies
+  --------------------------
+  build-depends:
+    cardano-api
+    , plutus-ledger-api  >=1.0.0
+    , plutus-tx          >=1.0.0
+    , plutus-tx-plugin   >=1.0.0
+
+  ------------------------
+  -- Non-IOG dependencies
+  ------------------------
+  build-depends:
+    aeson
+    , base                      >=4.9 && <5
+    , bytestring
+    , containers
+    , data-default
+    , hedgehog
+    , lens
+    , mtl
+    , QuickCheck
+    , quickcheck-contractmodel
+    , quickcheck-dynamic
     , tasty
     , tasty-golden
-    , tasty-hedgehog     >=0.2.0.0
+    , tasty-hedgehog
     , tasty-hunit
     , tasty-quickcheck
     , text
-    , time
