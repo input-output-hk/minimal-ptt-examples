@@ -36,6 +36,8 @@ library
   exposed-modules:
     Contract.Escrow
     Spec.Escrow
+    Contract.Vesting
+    Spec.Vesting
 
   hs-source-dirs:     src
                       tests
@@ -105,6 +107,7 @@ test-suite escrow-test
   ghc-options:      -Wno-unused-packages
   other-modules:
     Spec.Escrow
+    Contract.Vesting
 
   --------------------
   -- Local components
