@@ -1,22 +1,23 @@
-{-# LANGUAGE ConstraintKinds    #-}
-{-# LANGUAGE DataKinds          #-}
-{-# LANGUAGE DeriveAnyClass     #-}
-{-# LANGUAGE DeriveGeneric      #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE FlexibleContexts   #-}
-{-# LANGUAGE NamedFieldPuns     #-}
-{-# LANGUAGE NoImplicitPrelude  #-}
-{-# LANGUAGE OverloadedStrings  #-}
-{-# LANGUAGE TemplateHaskell    #-}
-{-# LANGUAGE TypeApplications   #-}
-{-# LANGUAGE TypeFamilies       #-}
-{-# LANGUAGE TypeOperators      #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# OPTIONS_GHC -fno-ignore-interface-pragmas #-}
-{-# OPTIONS_GHC -fno-specialise #-}
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -g -fplugin-opt PlutusTx.Plugin:coverage-all #-}
+
 module Contract.Vesting (
     -- $vesting
+    Vesting,
     VestingParams(..),
     -- VestingSchema,
     VestingTranche(..),
@@ -27,38 +28,6 @@ module Contract.Vesting (
     validate,
     vestingScript,
     covIdx) where
-
-{-
-import Control.Lens
-import Control.Monad (void, when)
-import Data.Aeson (FromJSON, ToJSON)
-import Data.Map qualified as Map
-import Prelude (Semigroup (..))
-
-
-import Ledger (CardanoAddress, POSIXTime, POSIXTimeRange, PaymentPubKeyHash (unPaymentPubKeyHash),
-               decoratedTxOutPlutusValue)
--}
-
--- import Cardano.Node.Emulator.Params (pNetworkId, testnet)
--- import Ledger.Interval qualified as Interval
--- import Ledger.Tx.Constraints (TxConstraints, mustBeSignedBy, mustPayToTheScriptWithDatumInTx, mustValidateInTimeRange)
--- import Ledger.Tx.Constraints qualified as Constraints
--- import Ledger.Tx.Constraints.ValidityInterval qualified as ValidityInterval
--- import Plutus.Contract
--- import Plutus.Contract.Test.Coverage.Analysis
--- import Plutus.V2.Ledger.Api (ScriptContext (..), TxInfo (..), Validator)
--- import Plutus.V2.Ledger.Contexts qualified as V2
-{-
-import Ledger.Typed.Scripts (ValidatorTypes (..))
-import Ledger.Typed.Scripts qualified as Scripts
-import Plutus.Script.Utils.V2.Typed.Scripts qualified as V2
-import Plutus.Script.Utils.Value (Value)
-import Plutus.Script.Utils.Value qualified as Value
-import PlutusTx qualified
-import PlutusTx.Prelude hiding (Semigroup (..), fold)
-
--}
 
 import Control.Lens (makeClassyPrisms)
 import Control.Monad (void)
@@ -73,7 +42,7 @@ import PlutusTx qualified
 import PlutusTx.Code (getCovIdx)
 import PlutusTx.Coverage (CoverageIndex)
 import PlutusTx.Prelude (Bool)
-
+import PlutusTx.Prelude qualified as PlutusTx
 
 import Cardano.Node.Emulator qualified as E
 import Cardano.Node.Emulator.Internal.Node (
@@ -107,9 +76,9 @@ import PlutusLedgerApi.V2.Tx (OutputDatum (OutputDatum))
 
 -- My imports
 
-import GHC.Generics (Generic)
-import Prelude qualified as Haskell
-import PlutusTx.Prelude -- qualified as PlutusTx
+-- import GHC.Generics (Generic)
+-- import Prelude qualified as Haskell
+-- import PlutusTx.Prelude -- qualified as PlutusTx
 
 {- |
     A simple vesting scheme. Money is locked by a contract and may only be
@@ -150,7 +119,7 @@ data VestingParams = VestingParams {
     vestingTranche1 :: VestingTranche,
     vestingTranche2 :: VestingTranche,
     vestingOwner    :: PaymentPubKeyHash
-    } deriving Generic
+    } -- deriving Generic
 
 PlutusTx.makeLift ''VestingParams
 
@@ -158,14 +127,14 @@ PlutusTx.makeLift ''VestingParams
 -- | Get the total value locked by the given validator in this transaction.
 valueLockedBy :: TxInfo -> ValidatorHash -> Value
 valueLockedBy ptx h =
-    let outputs = map snd (scriptOutputsAt h ptx)
+    let outputs = PlutusTx.map snd (scriptOutputsAt h ptx)
     in mconcat outputs
 
 {-# INLINABLE totalAmount #-}
 -- | The total amount vested
 totalAmount :: VestingParams -> Value
 totalAmount VestingParams{vestingTranche1,vestingTranche2} =
-    vestingTrancheAmount vestingTranche1 + vestingTrancheAmount vestingTranche2
+    vestingTrancheAmount vestingTranche1 PlutusTx.+ vestingTrancheAmount vestingTranche2
 
 {-# INLINABLE availableFrom #-}
 -- | The amount guaranteed to be available from a given tranche in a given time range.
@@ -176,7 +145,7 @@ availableFrom (VestingTranche d v) range =
     -- If the valid range completely contains the argument range (meaning in particular
     -- that the start time of the argument range is after the tranche vesting date), then
     -- the money in the tranche is available, otherwise nothing is available.
-    in if validRange `Interval.contains` range then v else zero
+    in if validRange `Interval.contains` range then v else PlutusTx.zero
 
 availableAt :: VestingParams -> POSIXTime -> Value
 availableAt VestingParams{vestingTranche1, vestingTranche2} time =
@@ -188,7 +157,7 @@ availableAt VestingParams{vestingTranche1, vestingTranche2} time =
 -- | The amount that has not been released from this tranche yet
 remainingFrom :: VestingTranche -> Ledger.POSIXTimeRange -> Value
 remainingFrom t@VestingTranche{vestingTrancheAmount} range =
-    vestingTrancheAmount - availableFrom t range
+    vestingTrancheAmount PlutusTx.- availableFrom t range
 
 {-# INLINABLE validate #-}
 validate :: VestingParams -> () -> () -> ScriptContext -> Bool
@@ -198,7 +167,7 @@ validate VestingParams{vestingTranche1, vestingTranche2, vestingOwner} () () ctx
 
         remainingExpected =
             remainingFrom vestingTranche1 txInfoValidRange
-            + remainingFrom vestingTranche2 txInfoValidRange
+            PlutusTx.+ remainingFrom vestingTranche2 txInfoValidRange
 
     in remainingActual `geq` remainingExpected
             -- The policy encoded in this contract
@@ -225,17 +194,32 @@ contractAddress = Scripts.validatorCardanoAddress testnet . typedValidator
 data VestingError =
     VContractError
     | InsufficientFundsError Value Value Value
-    deriving stock (Haskell.Show)
+    deriving stock (Show)
     -- deriving stock (Haskell.Eq, Haskell.Show, Generic)
     -- deriving anyclass (ToJSON, FromJSON)
 
 makeClassyPrisms ''VestingError
 
-{-
+toTxOutValue :: Value -> C.TxOutValue C.BabbageEra
+toTxOutValue = either (error . show) C.toCardanoTxOutValue . C.toCardanoValue
+
+  -- C.toCardanoTxOutValue . C.toCardanoValue
+
+--  C.toCardanoTxOutValue . C.toCardanoValue
+
+  -- either (error . Haskell.show) C.toCardanoTxOutValue . C.toCardanoValue
+
+toHashableScriptData :: (PlutusTx.ToData a) => a -> C.HashableScriptData
+toHashableScriptData = C.unsafeHashableScriptData . C.fromPlutusData . PlutusTx.toData
+
+toTxOutInlineDatum :: (PlutusTx.ToData a) => a -> C.TxOutDatum C.CtxTx C.BabbageEra
+toTxOutInlineDatum = C.TxOutDatumInline C.BabbageEraOnwardsBabbage . toHashableScriptData
+
 -- instance AsContractError VestingError where
 --    _ContractError = _VContractError
 -- | Pay some money into the vesting contract.
-mkPayTx
+
+mkVestTx
   :: SlotConfig
   -> VestingParams
   -- ^ The escrow contract
@@ -244,20 +228,20 @@ mkPayTx
   -> Value
   -- ^ How much money to pay in
   -> (C.CardanoBuildTx, Ledger.UtxoIndex)
-mkPayTx slotConfig vesting wallet vl =
+mkVestTx slotConfig vesting wallet vl =
   let vestingAddr = contractAddress vesting
       pkh = Ledger.PaymentPubKeyHash $ fromJust $ Ledger.cardanoPubKeyHash wallet
-      txOut = C.TxOut vestingwAddr (toTxOutValue vl) (toTxOutInlineDatum pkh) C.ReferenceScriptNone
-      validityRange = toValidityRange slotConfig $ Interval.to $ escrowDeadline escrow - 1000
+      txOut = C.TxOut vestingAddr (toTxOutValue vl) (toTxOutInlineDatum pkh) C.ReferenceScriptNone
+      -- validityRange = toValidityRange slotConfig $ Interval.to $ escrowDeadline escrow PlutusTx.- 1000
       utx =
         E.emptyTxBodyContent
-          { C.txOuts = [txOut]
-          , C.txValidityLowerBound = fst validityRange
-          , C.txValidityUpperBound = snd validityRange
-          }
+          { C.txOuts = [txOut] }
       utxoIndex = mempty
    in (C.CardanoBuildTx utx, utxoIndex)
 
+
+
+{-
 vestFundsC
     :: (E.MonadEmulator m)
     => Ledger.CardanoAddress
@@ -307,9 +291,9 @@ retrieveFundsC vesting payment = mapError (review _VestingError) $ do
     unspentOutputs <- utxosAt addr
     let
         currentlyLocked = foldMap decoratedTxOutPlutusValue (Map.elems unspentOutputs)
-        remainingValue = currentlyLocked - payment
-        mustRemainLocked = totalAmount vesting - availableAt vesting now
-        maxPayment = currentlyLocked - mustRemainLocked
+        remainingValue = currentlyLocked PlutusTx.- payment
+        mustRemainLocked = totalAmount vesting PlutusTx.- availableAt vesting now
+        maxPayment = currentlyLocked PlutusTx.- mustRemainLocked
 
     when (remainingValue `Value.lt` mustRemainLocked)
         $ throwError
