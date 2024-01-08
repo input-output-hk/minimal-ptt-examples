@@ -107,6 +107,8 @@ test-suite escrow-test
   ghc-options:      -Wno-unused-packages
   other-modules:
     Spec.Escrow
+    Contract.Vesting
+    Spec.Vesting
 
   --------------------
   -- Local components

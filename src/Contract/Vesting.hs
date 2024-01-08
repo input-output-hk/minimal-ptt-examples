@@ -264,7 +264,7 @@ mkRetrieveTx
   => VestingParams
   -> Ledger.CardanoAddress
   -> Value
-  -> m (C.CardanoBuildTx, Ledger.UtxoIndex)
+  -> m (C.CardanoBuildTx, Ledger.UtxoIndex, Liveness)
 mkRetrieveTx vesting wallet payment = do
   let vestingAddr = contractAddress vesting
       pkh = Ledger.PaymentPubKeyHash $ fromJust $ Ledger.cardanoPubKeyHash wallet
@@ -287,6 +287,16 @@ mkRetrieveTx vesting wallet payment = do
       remainingOutputs = case liveness of
                            Alive -> [ C.TxOut vestingAddr (toTxOutValue remainingValue) (toTxOutInlineDatum pkh) C.ReferenceScriptNone ]
                            Dead  -> []
+      txout = C.TxOut
+                ( C.makeShelleyAddressInEra
+                  C.shelleyBasedEra
+                  testnet
+                  (either (error . show) C.PaymentCredentialByKey $ C.toCardanoPaymentKeyHash pkh)
+                  C.NoStakeAddress
+                )
+                (toTxOutValue payment)
+                C.TxOutDatumNone
+                C.ReferenceScriptNone
       validityRange = toValidityRange slotConfig $ Interval.from current
       witnessHeader =
         C.toCardanoTxInScriptWitnessHeader
@@ -300,78 +310,26 @@ mkRetrieveTx vesting wallet payment = do
       utx =
         E.emptyTxBodyContent
           { C.txIns = txIns
-          , C.txOuts = remainingOutputs -- fix this
+          , C.txOuts = txout : remainingOutputs -- fix this
           , C.txValidityLowerBound = fst validityRange
           , C.txValidityUpperBound = snd validityRange
           , C.txExtraKeyWits = C.TxExtraKeyWitnesses C.AlonzoEraOnwardsBabbage [extraKeyWit]
           }
       in
-        pure (C.CardanoBuildTx utx, unspentOutputs)
+        pure (C.CardanoBuildTx utx, unspentOutputs, liveness)
 
- {-     validityRange = toValidityRange slotConfig $ Interval.from current
-          let
-            validityRange = toValidityRange slotConfig $ Interval.to $ escrowDeadline escrow - 1000
-            txOuts = map mkTxOutput (escrowTargets escrow)
-            witnessHeader =
-              C.toCardanoTxInScriptWitnessHeader
-                (Ledger.getValidator <$> Scripts.vValidatorScript (typedValidator escrow))
-            redeemer = toHashableScriptData Redeem
-            witness =
-              C.BuildTxWith $
-                C.ScriptWitness C.ScriptWitnessForSpending $
-                  witnessHeader C.InlineScriptDatum redeemer C.zeroExecutionUnits
-            txIns = (,witness) <$> Map.keys (C.unUTxO unspentOutputs)
-            utx =
-              E.emptyTxBodyContent
-                { C.txIns = txIns
-                , C.txOuts = txOuts
-                , C.txValidityLowerBound = fst validityRange
-                , C.txValidityUpperBound = snd validityRange
-                }
-           in
-            pure (C.CardanoBuildTx utx, unspentOutputs) -}
-
-{-
-data Lieness = Alive | Dead
-
-retrieveFundsC
-    :: ( AsVestingError e
-       )
-    => VestingParams
-    -> Value
-    -> Contract w s e Liveness
-retrieveFundsC vesting payment = mapError (review _VestingError) $ do
-    networkId <- pNetworkId <$> getParams
-    let inst = typedValidator vesting
-        addr = Scripts.validatorCardanoAddress networkId inst
-    now <- fst <$> currentNodeClientTimeRange
-    unspentOutputs <- utxosAt addr
-    let
-        currentlyLocked = foldMap decoratedTxOutPlutusValue (Map.elems unspentOutputs)
-        remainingValue = currentlyLocked PlutusTx.- payment
-        mustRemainLocked = totalAmount vesting PlutusTx.- availableAt vesting now
-        maxPayment = currentlyLocked PlutusTx.- mustRemainLocked
-
-    when (remainingValue `Value.lt` mustRemainLocked)
-        $ throwError
-        $ InsufficientFundsError payment maxPayment mustRemainLocked
-
-    let liveness = if remainingValue `Value.gt` mempty then Alive else Dead
-        remainingOutputs = case liveness of
-                            Alive -> payIntoContract remainingValue
-                            Dead  -> mempty
-        tx = Constraints.spendUtxosFromTheScript unspentOutputs ()
-                <> remainingOutputs
-                <> mustValidateInTimeRange (ValidityInterval.from now)
-                <> mustBeSignedBy (vestingOwner vesting)
-                -- we don't need to add a pubkey output for 'vestingOwner' here
-                -- because this will be done by the wallet when it balances the
-                -- transaction.
-    mkTxConstraints (Constraints.typedValidatorLookups inst
-                  <> Constraints.unspentOutputs unspentOutputs) tx
-      >>= adjustUnbalancedTx >>= void . submitUnbalancedTx
-    return liveness
--}
+retrieveFunds
+  :: (E.MonadEmulator m)
+  => Ledger.CardanoAddress
+  -> Ledger.PaymentPrivateKey
+  -> VestingParams
+  -> Value
+  -> m Liveness
+retrieveFunds wallet privateKey vesting payment = do
+  E.logInfo @String $ "Retrieving " -- <> show total <> " to the script"
+  (utx, utxoIndex, liveness) <- mkRetrieveTx vesting wallet payment
+  void $ E.submitTxConfirmed utxoIndex wallet [privateKey] utx
+  return liveness
 
 covIdx :: CoverageIndex
 covIdx = getCovIdx $$(PlutusTx.compile [||validate||])
