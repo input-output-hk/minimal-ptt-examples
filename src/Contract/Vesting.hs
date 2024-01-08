@@ -27,6 +27,9 @@ module Contract.Vesting (
     -- vestingContract,
     validate,
     vestingScript,
+    typedValidator,
+    vestFunds,
+    retrieveFunds,
     covIdx) where
 
 import Control.Lens (makeClassyPrisms)

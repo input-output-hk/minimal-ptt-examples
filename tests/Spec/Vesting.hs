@@ -1,26 +1,27 @@
-{-# LANGUAGE DataKinds           #-}
-{-# LANGUAGE DeriveGeneric       #-}
-{-# LANGUAGE FlexibleContexts    #-}
-{-# LANGUAGE FlexibleInstances   #-}
-{-# LANGUAGE GADTs               #-}
-{-# LANGUAGE NamedFieldPuns      #-}
-{-# LANGUAGE NumericUnderscores  #-}
-{-# LANGUAGE OverloadedStrings   #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE StandaloneDeriving  #-}
-{-# LANGUAGE TemplateHaskell     #-}
-{-# LANGUAGE TypeApplications    #-}
-{-# LANGUAGE TypeFamilies        #-}
-{-# OPTIONS_GHC -fno-warn-incomplete-uni-patterns -fno-warn-unused-do-bind -fno-warn-name-shadowing #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE ImportQualifiedPost #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+
 module Spec.Vesting (VestingModel
-                    , tests
+                    , prop_Vesting) where
+
+            {-        , tests
                     , modelTests
                     , prop_Vesting
                     , prop_CheckNoLockedFundsProof
                     , retrieveFundsTrace
                     , certification
-                    , check_propVestingWithCoverage) where
+                    , check_propVestingWithCoverage) where -}
 
+{-
 import Control.Lens hiding (elements)
 import Control.Monad (void, when)
 import Data.Default (Default (def))
@@ -45,6 +46,139 @@ import Prelude
 import Test.QuickCheck hiding ((.&&.))
 import Plutus.Contract.Test.Certification
 import Plutus.Contract.Test.ContractModel.CrashTolerance
+-}
+
+----Additional
+
+import PlutusTx.Numeric qualified as Numeric
+import Plutus.Script.Utils.Ada qualified as Ada
+import Plutus.Script.Utils.Value
+
+-----
+
+import Control.Lens (At (at), makeLenses, to, (%=), (.=), (^.))
+import Control.Monad (void, when)
+import Control.Monad.Trans (lift)
+import Data.Default (Default (def))
+import Data.Foldable (Foldable (fold, length, null), sequence_)
+import Data.Map (Map)
+import Data.Map qualified as Map
+import GHC.Generics (Generic)
+
+import Cardano.Api.Shelley (toPlutusData)
+import Cardano.Node.Emulator qualified as E
+import Cardano.Node.Emulator.Internal.Node.Params qualified as Params
+import Cardano.Node.Emulator.Internal.Node.TimeSlot qualified as TimeSlot
+import Cardano.Node.Emulator.Test (
+  checkPredicateOptions,
+  hasValidatedTransactionCountOfTotal,
+  walletFundsChange,
+  (.&&.),
+ )
+import Cardano.Node.Emulator.Test.Coverage (writeCoverageReport)
+import Cardano.Node.Emulator.Test.NoLockedFunds (
+  NoLockedFundsProof (nlfpMainStrategy, nlfpWalletStrategy),
+  checkNoLockedFundsProofWithOptions,
+  defaultNLFP,
+ )
+import Ledger (Slot, minAdaTxOutEstimated)
+import Ledger qualified
+import Ledger.Tx.CardanoAPI (fromCardanoSlotNo)
+import Ledger.Typed.Scripts qualified as Scripts
+import Ledger.Value.CardanoAPI qualified as Value
+import Plutus.Script.Utils.Ada qualified as Ada
+import Plutus.Script.Utils.Value (Value, geq)
+import PlutusLedgerApi.V1.Time (POSIXTime)
+
+import Contract.Vesting (
+  VestingParams(..),
+  vestFunds,
+  retrieveFunds,
+  typedValidator,
+  VestingTranche(..),
+ )
+import Contract.Escrow qualified as Impl
+import PlutusTx (fromData)
+import PlutusTx.Monoid (inv)
+
+import Cardano.Api (
+  AddressInEra (AddressInEra),
+  AllegraEraOnwards (AllegraEraOnwardsBabbage),
+  IsShelleyBasedEra (shelleyBasedEra),
+  TxOut (TxOut),
+  TxValidityLowerBound (TxValidityLowerBound, TxValidityNoLowerBound),
+  TxValidityUpperBound (TxValidityUpperBound),
+  UTxO (unUTxO),
+  toAddressAny,
+ )
+import Test.QuickCheck qualified as QC hiding ((.&&.))
+import Test.QuickCheck.ContractModel (
+  Action,
+  Actions,
+  ContractModel,
+  DL,
+  RunModel,
+  action,
+  anyActions_,
+  assertModel,
+  contractState,
+  currentSlot,
+  deposit,
+  forAllDL,
+  lockedValue,
+  observe,
+  symIsZero,
+  utxo,
+  viewContractState,
+  viewModelState,
+  wait,
+  waitUntilDL,
+  withdraw,
+ )
+import Test.QuickCheck.ContractModel qualified as QCCM
+import Test.QuickCheck.ContractModel.ThreatModel (
+  IsInputOrOutput (addressOf),
+  ThreatModel,
+  anyInputSuchThat,
+  changeValidityRange,
+  getRedeemer,
+  shouldNotValidate,
+ )
+import Test.Tasty (TestTree, testGroup)
+import Test.Tasty.QuickCheck (
+  Property,
+  choose,
+  frequency,
+  testProperty,
+ )
+
+import Plutus.Script.Utils.Value (leq)
+
+
+w1, w2, w3, w4, w5 :: Wallet
+w1 = 1
+w2 = 2
+w3 = 3
+w4 = 4
+w5 = 5
+
+walletAddress :: Wallet -> Ledger.CardanoAddress
+walletAddress = (E.knownAddresses !!) . pred . fromIntegral
+
+walletPrivateKey :: Wallet -> Ledger.PaymentPrivateKey
+walletPrivateKey = (E.knownPaymentPrivateKeys !!) . pred . fromIntegral
+
+testWallets :: [Wallet]
+testWallets = [w1, w2, w3, w4, w5] -- removed five to increase collisions (, w6, w7, w8, w9, w10])
+
+walletPaymentPubKeyHash :: Wallet -> Ledger.PaymentPubKeyHash
+walletPaymentPubKeyHash =
+  Ledger.PaymentPubKeyHash
+    . Ledger.pubKeyHash
+    . Ledger.unPaymentPubKey
+    . (E.knownPaymentPublicKeys !!)
+    . pred
+    . fromIntegral
 
 -- | The scenario used in the property tests. It sets up a vesting scheme for a
 --   total of 60 ada over 20 blocks (20 ada can be taken out before
@@ -54,12 +188,14 @@ vesting startTime =
     VestingParams
         { vestingTranche1 = VestingTranche (startTime + 10000) (Ada.adaValueOf 20)
         , vestingTranche2 = VestingTranche (startTime + 20000) (Ada.adaValueOf 40)
-        , vestingOwner    = mockWalletPaymentPubKeyHash w1 }
+        , vestingOwner    = walletPaymentPubKeyHash w1 }
 
 params :: VestingParams
 params = vesting (TimeSlot.scSlotZeroTime def)
 
 -- * QuickCheck model
+
+type Wallet = Integer
 
 data VestingModel =
   VestingModel { _vestedAmount :: Value -- ^ How much value is in the contract
@@ -72,15 +208,15 @@ data VestingModel =
 
 makeLenses 'VestingModel
 
-deriving instance Eq (ContractInstanceKey VestingModel w schema err params)
-deriving instance Show (ContractInstanceKey VestingModel w schema err params)
+-- deriving instance Eq (ContractInstanceKey VestingModel w schema err params)
+-- deriving instance Show (ContractInstanceKey VestingModel w schema err params)
 
 -- This instance models the behaviour of the vesting contract. There are some peculiarities
 -- that stem from the implementation of the contract that are apparent in the precondition
 -- to the `Vest` endpoint.
 instance ContractModel VestingModel where
-  data ContractInstanceKey VestingModel w schema err params where
-    WalletKey :: Wallet -> ContractInstanceKey VestingModel () VestingSchema VestingError ()
+  -- data ContractInstanceKey VestingModel w schema err params where
+    -- WalletKey :: Wallet -> ContractInstanceKey VestingModel () VestingSchema VestingError ()
 
   data Action VestingModel = Vest Wallet
                            | Retrieve Wallet Value
@@ -94,26 +230,17 @@ instance ContractModel VestingModel where
     , _t1Amount     = vestingTrancheAmount (vestingTranche1 params)
     , _t2Amount     = vestingTrancheAmount (vestingTranche2 params) }
 
-  initialInstances = (`StartContract` ()) . WalletKey <$> [w1, w2, w3]
+  -- initialInstances = (`StartContract` ()) . WalletKey <$> [w1, w2, w3]
 
-  instanceWallet (WalletKey w) = w
+  -- instanceWallet (WalletKey w) = w
 
-  instanceContract _ WalletKey{} _ = vestingContract params
-
-  perform handle _ _ cmd = case cmd of
-    Vest w -> do
-      callEndpoint @"vest funds" (handle $ WalletKey w) ()
-      delay 1
-
-    Retrieve w val -> do
-      callEndpoint @"retrieve funds" (handle $ WalletKey w) val
-      delay 2
+  -- instanceContract _ WalletKey{} _ = vestingContract params
 
   -- Vest the sum of the two tranches
   nextState (Vest w) = do
     let amount =  vestingTrancheAmount (vestingTranche1 params)
                <> vestingTrancheAmount (vestingTranche2 params)
-    withdraw w amount
+    withdraw (walletAddress w) amount
     vestedAmount %= (<> amount)
     vested       %= (w:)
     wait 1
@@ -125,24 +252,24 @@ instance ContractModel VestingModel where
     amount <- viewContractState vestedAmount
     let newAmount = amount Numeric.- v
     s      <- viewContractState id
-    when ( enoughValueLeft slot s v
+    when ( enoughValueLeft (fromCardanoSlotNo slot) s v
          && v `leq` amount
-         && mockWalletPaymentPubKeyHash w == vestingOwner params
+         && walletPaymentPubKeyHash w == vestingOwner params
          && Ada.fromValue v >= Ledger.minAdaTxOutEstimated
          && (Ada.fromValue newAmount == 0 || Ada.fromValue newAmount >= Ledger.minAdaTxOutEstimated)) $ do
-      deposit w v
+      deposit (walletAddress w) v
       vestedAmount .= newAmount
     wait 2
 
   precondition s (Vest w) =  w `notElem` s ^. contractState . vested -- After a wallet has vested the contract shuts down
-                          && mockWalletPaymentPubKeyHash w /= vestingOwner params -- The vesting owner shouldn't vest
-                          && slot < t1 -- If you vest after slot 1 it can cause the vesting owner to terminate prematurely
+                          && walletPaymentPubKeyHash w /= vestingOwner params -- The vesting owner shouldn't vest
+                          && (fromCardanoSlotNo slot) < t1 -- If you vest after slot 1 it can cause the vesting owner to terminate prematurely
     where
       slot   = s ^. currentSlot
       t1     = s ^. contractState . t1Slot
 
-  precondition s (Retrieve w v) = enoughValueLeft slot (s ^. contractState) v
-                                && mockWalletPaymentPubKeyHash w == vestingOwner params
+  precondition s (Retrieve w v) = enoughValueLeft (fromCardanoSlotNo slot) (s ^. contractState) v
+                                && walletPaymentPubKeyHash w == vestingOwner params
                                 && Ada.fromValue v >= Ledger.minAdaTxOutEstimated
                                 && (Ada.fromValue newAmount == 0 || Ada.fromValue newAmount >= Ledger.minAdaTxOutEstimated)
     where
@@ -161,9 +288,27 @@ instance ContractModel VestingModel where
       amount   = s ^. contractState . vestedAmount
 
 
+instance RunModel VestingModel E.EmulatorM where
+  perform _ cmd _ = lift $ act cmd
 
-  shrinkAction _ (Vest _)       = []
-  shrinkAction _ (Retrieve w v) = Retrieve w <$> shrinkValue v
+act :: Action VestingModel -> E.EmulatorM ()
+act = \case
+  Vest w -> do
+    vestFunds
+      (walletAddress w)
+      (walletPrivateKey w)
+      params
+  Retrieve w v -> do
+    void $
+      retrieveFunds
+        (walletAddress w)
+        (walletPrivateKey w)
+        params
+        v -- (Ada.adaValueOf $ fromInteger v)
+
+-- Fix This:
+--  shrinkAction _ (Vest _)       = []
+--  shrinkAction _ (Retrieve w v) = Retrieve w <$> shrinkValue v
 
 -- | Check that the amount of value left in the contract
 -- is at least the amount that remains locked at the current
@@ -184,12 +329,13 @@ enoughValueLeft slot s take =
     t2     = s ^. t2Slot
     t2v    = s ^. t2Amount
 
-wallets :: [Wallet]
-wallets = [w1, w2, w3]
+genWallet :: QC.Gen Wallet
+genWallet = QC.elements testWallets
 
-genWallet :: Gen Wallet
-genWallet = elements wallets
+prop_Vesting :: Actions VestingModel -> Property
+prop_Vesting = E.propRunActions
 
+{-
 shrinkValue :: Value -> [Value]
 shrinkValue v = Ada.lovelaceValueOf <$> filter (\val -> val >= Ada.getLovelace Ledger.minAdaTxOutEstimated) (shrink (valueOf v Ada.adaSymbol Ada.adaToken))
 
@@ -324,15 +470,4 @@ simpleVestTest = do
               action $ Vest w2
               waitUntilDL 11
               action $ Retrieve w1 (Ada.adaValueOf 10)
-
--- | Certification.
-certification :: Certification VestingModel
-certification = defaultCertification {
-    certNoLockedFunds = Just noLockProof,
-    certCrashTolerance = Just Instance,
-    certUnitTests = Just unitTest,
-    certDLTests = [("Simple vesting test", simpleVestTest)],
-    certCoverageIndex = covIdx
-  }
-    where unitTest _ = tests
-
+-}
