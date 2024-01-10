@@ -11,7 +11,8 @@
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 
 module Spec.Vesting (VestingModel
-                    , prop_Vesting) where
+                    , prop_Vesting
+                    , prop_Check) where
 
             {-        , tests
                     , modelTests
@@ -153,7 +154,6 @@ import Test.Tasty.QuickCheck (
  )
 
 import Plutus.Script.Utils.Value (leq)
-
 
 w1, w2, w3, w4, w5 :: Wallet
 w1 = 1
@@ -334,6 +334,38 @@ genWallet = QC.elements testWallets
 
 prop_Vesting :: Actions VestingModel -> Property
 prop_Vesting = E.propRunActions
+
+simpleVestTest :: DL VestingModel ()
+simpleVestTest = do
+              action $ Vest w2
+              waitUntilDL 11
+              action $ Retrieve w1 (Ada.adaValueOf 10)
+
+prop_Check :: QC.Property
+prop_Check = QC.withMaxSuccess 1 $ forAllDL simpleVestTest prop_Vesting
+
+{-
+Balance changes don't match:
+  Predicted symbolic balance changes:
+    Wallet 2: {60000000 Lovelace}
+    Wallet 1: {10000000 Lovelace}
+  Predicted actual balance changes:
+    Wallet 2: {60000000 Lovelace}
+    Wallet 1: {10000000 Lovelace}
+  Actual balance changes:
+    Wallet 2: {60000000 Lovelace}
+    Wallet 1: {50000000 Lovelace}
+-}
+
+{-
+simpleVestTest :: DL VestingModel ()
+simpleVestTest = do
+ [[+]Vest 2,
+  [+]Vest 4,
+  [+]Vest 3,
+  [+]Retrieve 1 (Value {getValue = Map {unMap = [(,Map {unMap = [("",67263905)]})]}})]
+-}
+
 
 {-
 shrinkValue :: Value -> [Value]

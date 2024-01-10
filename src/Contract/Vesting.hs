@@ -308,12 +308,12 @@ mkRetrieveTx vesting wallet payment = do
       witness =
         C.BuildTxWith $
           C.ScriptWitness C.ScriptWitnessForSpending $
-            witnessHeader C.InlineScriptDatum redeemer C.zeroExecutionUnits
+          witnessHeader C.InlineScriptDatum redeemer C.zeroExecutionUnits
       txIns = (,witness) <$> Map.keys (C.unUTxO unspentOutputs)
       utx =
         E.emptyTxBodyContent
           { C.txIns = txIns
-          , C.txOuts = txout : remainingOutputs -- fix this
+          , C.txOuts = txout : remainingOutputs -- txout : remainingOutputs -- fix this
           , C.txValidityLowerBound = fst validityRange
           , C.txValidityUpperBound = snd validityRange
           , C.txExtraKeyWits = C.TxExtraKeyWitnesses C.AlonzoEraOnwardsBabbage [extraKeyWit]
@@ -339,3 +339,12 @@ covIdx = getCovIdx $$(PlutusTx.compile [||validate||])
 
 -- covIdx :: CoverageIndex
 -- covIdx = computeRefinedCoverageIndex $$(PlutusTx.compile [|| \a b c d -> check (validate a b c d) ||])
+
+{-
+with inline datum HashableScriptData "X\FS\128\164\244[V\184\141\DC19\218#\188L<u\236m2\148<\b\DEL%\v\134\EM<\167" (ScriptDataBytes "\128\164\244[V\184\141\DC19\218#\188L<u\236m2\148<\b\DEL%\v\134\EM<\167") )
+ValidationError (Phase2,ScriptFailure (EvaluationError [] "CekEvaluationFailure: An error has occurred:  User error:\nThe machine terminated because of an error, either from a built-in function or from an explicit use of 'error'.\nCaused by: (unConstrData\n              (B #80a4f45b56b88d1139da23bc4c3c75ec6d32943c087f250b86193ca7))"))
+
+ScriptCredential: 2902113792174cd082560cff344fbc1fdb2b928e9e3cbf8ab1956f8b (no staking credential)
+               with inline datum HashableScriptData "X\FS\128\164\244[V\184\141\DC19\218#\188L<u\236m2\148<\b\DEL%\v\134\EM<\167" (ScriptDataBytes "\128\164\244[V\184\141\DC19\218#\188L<u\236m2\148<\b\DEL%\v\134\EM<\167") )
+ValidationError (Phase2,ScriptFailure (EvaluationError [] "CekEvaluationFailure: An error has occurred:  User error:\nThe machine terminated because of an error, either from a built-in function or from an explicit use of 'error'.\nCaused by: (unConstrData\n              (B #80a4f45b56b88d1139da23bc4c3c75ec6d32943c087f250b86193ca7))"))
+-}
