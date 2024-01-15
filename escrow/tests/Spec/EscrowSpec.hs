@@ -16,7 +16,7 @@
 module Spec.EscrowSpec where
 
 import Control.Lens hiding (elements)
-import Control.Monad.Reader
+-- import Control.Monad.Reader
 import Control.Monad.Error
 
 import Data.Default
@@ -54,6 +54,7 @@ import Cardano.Node.Emulator.Params qualified as Params
 import Cardano.Api.Shelley (toPlutusData)
 import PlutusTx (fromData)
 import Cardano.Api hiding (Value)
+import Test.QuickCheck.ContractModel.ThreatModel qualified as TM
 
 
 
@@ -330,6 +331,65 @@ validityChecks = do
 
 prop_validityChecks :: Actions EscrowModel -> Property
 prop_validityChecks = propRunActions testInit () (assertThreatModel validityChecks)
+
+-- | Value representing a number of bananas
+banana :: Integer -> Plutus.Value
+banana = Plutus.assetClassValue $ permanentAssetClass "Banana"
+
+noAda :: ThreatModel ()
+noAda = do
+   let startTime  = TimeSlot.scSlotZeroTime def
+       params     = escrowParams startTime
+       deadline   = toSlotNo . TimeSlot.posixTimeToEnclosingSlot def $ escrowDeadline params
+       scriptAddr = Scripts.validatorCardanoAddressAny Params.testnet $ typedValidator params
+   outputs <- getTxOutputs
+   output <- pickAny outputs
+   let ada = projectAda $ TM.valueOf output
+   shouldNotValidate $ changeValueOf output (TM.valueOf output <> negateValue ada)
+
+prop_noAda :: Actions EscrowModel -> Property
+prop_noAda = propRunActions testInit () (assertThreatModel noAda)
+
+noAdaInputs :: ThreatModel ()
+noAdaInputs = do
+   let startTime  = TimeSlot.scSlotZeroTime def
+       params     = escrowParams startTime
+       deadline   = toSlotNo . TimeSlot.posixTimeToEnclosingSlot def $ escrowDeadline params
+       scriptAddr = Scripts.validatorCardanoAddressAny Params.testnet $ typedValidator params
+   -- inputs <- getTxInputs
+   input <- anyInputSuchThat $ (scriptAddr ==) . addressOf
+   -- input <- pickAny inputs
+   let ada = projectAda $ TM.valueOf input
+   rmdr  <- (fromData . toPlutusData =<<) <$> getRedeemer input
+   case rmdr of
+    Nothing          -> fail "Missing or bad redeemer"
+    Just Impl.Redeem -> shouldNotValidate $ changeValueOf input (TM.valueOf input <> negateValue ada)
+    Just Impl.Refund -> shouldNotValidate $ changeValueOf input (TM.valueOf input <> negateValue ada)
+
+prop_noAdaInputs :: Actions EscrowModel -> Property
+prop_noAdaInputs = propRunActions testInit () (assertThreatModel noAdaInputs)
+
+{-
+addToken :: ThreatModel ()
+addToken = do
+   let startTime  = TimeSlot.scSlotZeroTime def
+       params     = escrowParams startTime
+       deadline   = toSlotNo . TimeSlot.posixTimeToEnclosingSlot def $ escrowDeadline params
+       scriptAddr = Scripts.validatorCardanoAddressAny Params.testnet $ typedValidator params
+   outputs <- getTxOutputs
+   output <- pickAny outputs
+   shouldNotValidate $ changeValueOf output (TM.toValue output <> (banana 1))
+
+prop_addToken :: Actions EscrowModel -> Property
+prop_addToken = propRunActions testInit () (assertThreatModel addToken)
+-}
+
+ut :: DL EscrowModel ()
+ut = do
+       action $ Pay 10 0
+
+pt :: Property
+pt = withMaxSuccess 3 $ forAllDL ut prop_Escrow
 
 -- | Certification.
 certification :: Certification EscrowModel
