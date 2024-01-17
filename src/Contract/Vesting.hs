@@ -77,6 +77,10 @@ import PlutusLedgerApi.V2.Contexts (valuePaidTo)
 import PlutusLedgerApi.V2.Contexts qualified as V2
 import PlutusLedgerApi.V2.Tx (OutputDatum (OutputDatum))
 
+import Debug.Trace
+
+
+
 -- My imports
 
 -- import GHC.Generics (Generic)
@@ -240,7 +244,7 @@ mkVestTx
 mkVestTx vesting wallet vl =
   let vestingAddr = contractAddress vesting
       pkh = Ledger.PaymentPubKeyHash $ fromJust $ Ledger.cardanoPubKeyHash wallet
-      txOut = C.TxOut vestingAddr (toTxOutValue vl) (toTxOutInlineDatum pkh) C.ReferenceScriptNone
+      txOut = C.TxOut vestingAddr (toTxOutValue vl) (toTxOutInlineDatum ()) C.ReferenceScriptNone
       -- validityRange = toValidityRange slotConfig $ Interval.to $ escrowDeadline escrow PlutusTx.- 1000
       utx =
         E.emptyTxBodyContent
@@ -288,23 +292,13 @@ mkRetrieveTx vesting wallet payment = do
       -- need to check whether remaining outputs should use pkh of waller or script
       -- need to add txouts for script as well in utx
       remainingOutputs = case liveness of
-                           Alive -> [ C.TxOut vestingAddr (toTxOutValue remainingValue) (toTxOutInlineDatum pkh) C.ReferenceScriptNone ]
+                           Alive -> [ C.TxOut vestingAddr (toTxOutValue remainingValue) (toTxOutInlineDatum ()) C.ReferenceScriptNone ]
                            Dead  -> []
-      txout = C.TxOut
-                ( C.makeShelleyAddressInEra
-                  C.shelleyBasedEra
-                  testnet
-                  (either (error . show) C.PaymentCredentialByKey $ C.toCardanoPaymentKeyHash pkh)
-                  C.NoStakeAddress
-                )
-                (toTxOutValue payment)
-                C.TxOutDatumNone
-                C.ReferenceScriptNone
       validityRange = toValidityRange slotConfig $ Interval.from current
+      redeemer = toHashableScriptData ()
       witnessHeader =
         C.toCardanoTxInScriptWitnessHeader
           (Ledger.getValidator <$> Scripts.vValidatorScript (typedValidator vesting))
-      redeemer = toHashableScriptData ()
       witness =
         C.BuildTxWith $
           C.ScriptWitness C.ScriptWitnessForSpending $
@@ -313,7 +307,7 @@ mkRetrieveTx vesting wallet payment = do
       utx =
         E.emptyTxBodyContent
           { C.txIns = txIns
-          , C.txOuts = txout : remainingOutputs -- txout : remainingOutputs -- fix this
+          , C.txOuts = remainingOutputs
           , C.txValidityLowerBound = fst validityRange
           , C.txValidityUpperBound = snd validityRange
           , C.txExtraKeyWits = C.TxExtraKeyWitnesses C.AlonzoEraOnwardsBabbage [extraKeyWit]

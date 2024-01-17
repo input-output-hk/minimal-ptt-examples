@@ -341,8 +341,18 @@ simpleVestTest = do
               waitUntilDL 11
               action $ Retrieve w1 (Ada.adaValueOf 10)
 
+
+simpleVestTest' :: DL VestingModel ()
+simpleVestTest' = do
+        action $ Vest w3
+        action $ Vest w4
+        waitUntilDL 9
+        action $ Retrieve w1 (Ada.adaValueOf 10)
+        action $ Retrieve w1 (Ada.adaValueOf 10)
+
+
 prop_Check :: QC.Property
-prop_Check = QC.withMaxSuccess 1 $ forAllDL simpleVestTest prop_Vesting
+prop_Check = QC.withMaxSuccess 1 $ forAllDL simpleVestTest' prop_Vesting
 
 {-
 Balance changes don't match:
