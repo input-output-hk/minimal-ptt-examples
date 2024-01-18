@@ -74,6 +74,7 @@ modelParams = escrowParams $ TimeSlot.scSlotZeroTime def
 
 instance ContractModel EscrowModel where
   data Action EscrowModel = Pay Int Integer
+                          | PayAccident Int Integer
                           | Redeem Int
                           | Refund Int
                           | StealRefund Int Int
@@ -95,6 +96,10 @@ instance ContractModel EscrowModel where
 
   nextState a = void $ case a of
     Pay w v -> do
+      withdraw (walletAddr $ wallet w) (Ada.adaValueOf $ fromInteger v)
+      contributions %= Map.insertWith (+) w v
+      wait 1
+    PayAccident w v -> do
       withdraw (walletAddr $ wallet w) (Ada.adaValueOf $ fromInteger v)
       contributions %= Map.insertWith (+) w v
       wait 1
@@ -121,6 +126,8 @@ instance ContractModel EscrowModel where
                 && Nothing /= (s ^. contractState . contributions . at w)
     Pay _ v -> s ^. currentSlot < toSlotNo (s ^. contractState . refundSlot)
              && Ada.adaValueOf (fromInteger v) `geq` Ada.toValue L.minAdaTxOutEstimated
+    PayAccident _ v -> s ^. currentSlot < toSlotNo (s ^. contractState . refundSlot)
+             && Ada.adaValueOf (fromInteger v) `geq` Ada.toValue L.minAdaTxOutEstimated
     StealRefund _ _ -> False
 
   validFailingAction s (StealRefund w w') = s ^. currentSlot >= toSlotNo (s ^. contractState . refundSlot)
@@ -129,6 +136,7 @@ instance ContractModel EscrowModel where
   validFailingAction _ _ = True
 
   arbitraryAction _ = oneof [ Pay <$> genWallet <*> choose @Integer (10, 30)
+                            , PayAccident <$> genWallet <*> choose @Integer (10, 30)
                             , Redeem <$> genWallet
                             , Refund <$> genWallet
                             , StealRefund <$> genWallet <*> genWallet
@@ -146,6 +154,8 @@ instance RunModel EscrowModel (SuperMockChain ()) where
   -- `perform` runs API actions by calling the off-chain code of
   -- the contract in the `SuperMockChain` monad.
   perform _ (Pay w v) _ = voidCatch $ do
+    pay (typedValidator modelParams) (wallet w) modelParams (Ada.adaValueOf $ fromInteger v)
+  perform _ (PayAccident w v) _ = voidCatch $ do
     pay (typedValidator modelParams) (wallet w) modelParams (Ada.adaValueOf $ fromInteger v)
   perform _ (Redeem w) _ = voidCatch $ do
     redeem (typedValidator modelParams) (wallet w) modelParams

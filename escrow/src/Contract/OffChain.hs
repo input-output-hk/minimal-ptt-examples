@@ -216,3 +216,29 @@ stealRefund inst submitter target escrow = do
     then error "no scripts to refund"
     else
       return tx
+
+payAccident ::
+    MonadBlockChain m
+    => Pl.TypedValidator Escrow
+    -- ^ The instance
+    -> Wallet
+    -- -> EscrowParams Datum
+    -- ^ The escrow contract
+    -> Value
+    -- ^ How much money to pay in
+    -> m L.CardanoTx
+payAccident inst submitter vl = do
+    -- let deadline = escrowDeadline escrow
+    -- validityInterval <- slotRangeBefore (deadline - 1)
+    (validateTxSkel $
+     txSkelTemplate
+      { txSkelOpts = def {txOptEnsureMinAda = True},
+        txSkelSigners = [submitter],
+        -- txSkelIns = [],
+        txSkelOuts = [paysScript
+                        inst
+                        (walletPKHash submitter)
+                        vl
+                     ] -- ,
+        -- txSkelValidityRange = validityInterval
+      })
