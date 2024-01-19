@@ -243,9 +243,26 @@ mkVestTx
   -> (C.CardanoBuildTx, Ledger.UtxoIndex)
 mkVestTx vesting wallet vl =
   let vestingAddr = contractAddress vesting
-      pkh = Ledger.PaymentPubKeyHash $ fromJust $ Ledger.cardanoPubKeyHash wallet
       txOut = C.TxOut vestingAddr (toTxOutValue vl) (toTxOutInlineDatum ()) C.ReferenceScriptNone
       -- validityRange = toValidityRange slotConfig $ Interval.to $ escrowDeadline escrow PlutusTx.- 1000
+      utx =
+        E.emptyTxBodyContent
+          { C.txOuts = [txOut] }
+      utxoIndex = mempty
+   in (C.CardanoBuildTx utx, utxoIndex)
+
+mkBadVestTx
+  :: VestingParams
+  -- ^ The escrow contract
+  -> Ledger.CardanoAddress
+  -- ^ Wallet address
+  -> Value
+  -- ^ How much money to pay in
+  -> (C.CardanoBuildTx, Ledger.UtxoIndex)
+mkBadVestTx vesting wallet vl =
+  let vestingAddr = contractAddress vesting
+      pkh = Ledger.PaymentPubKeyHash $ fromJust $ Ledger.cardanoPubKeyHash wallet
+      txOut = C.TxOut vestingAddr (toTxOutValue vl) (toTxOutInlineDatum pkh) C.ReferenceScriptNone
       utx =
         E.emptyTxBodyContent
           { C.txOuts = [txOut] }
@@ -274,7 +291,6 @@ mkRetrieveTx
   -> m (C.CardanoBuildTx, Ledger.UtxoIndex, Liveness)
 mkRetrieveTx vesting wallet payment = do
   let vestingAddr = contractAddress vesting
-      pkh = Ledger.PaymentPubKeyHash $ fromJust $ Ledger.cardanoPubKeyHash wallet
       extraKeyWit = either (error . show) id $ C.toCardanoPaymentKeyHash (vestingOwner vesting)
   unspentOutputs <- E.utxosAt vestingAddr
   slotConfig <- asks pSlotConfig
@@ -303,6 +319,11 @@ mkRetrieveTx vesting wallet payment = do
         C.BuildTxWith $
           C.ScriptWitness C.ScriptWitnessForSpending $
           witnessHeader C.InlineScriptDatum redeemer C.zeroExecutionUnits
+      emptyDatumHash = datumHash $ Datum $ PlutusTx.toBuiltinData ()
+      validUnspentOutputs =
+        Map.keys $
+          Map.filter (\(C.TxOut _aie _tov tod _rs) -> C.fromCardanoTxOutDatumHash' tod == (Just emptyDatumHash)) $
+            C.unUTxO unspentOutputs
       txIns = (,witness) <$> Map.keys (C.unUTxO unspentOutputs)
       utx =
         E.emptyTxBodyContent
