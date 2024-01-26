@@ -120,6 +120,8 @@ import Test.Tasty.QuickCheck (
   testProperty,
  )
 
+import Control.Monad.Except (catchError)
+
 type Wallet = Integer
 
 data EscrowModel = EscrowModel
@@ -208,6 +210,8 @@ instance ContractModel EscrowModel where
       s ^. currentSlot . to fromCardanoSlotNo < s ^. contractState . refundSlot - 2 -- why -2?
         || w /= w'
 
+  validFailingAction _ _ = True
+
   arbitraryAction s =
     frequency $
       [ (prefer beforeRefund, Pay <$> QC.elements testWallets <*> choose @Integer (10, 30))
@@ -227,7 +231,9 @@ instance ContractModel EscrowModel where
       prefer b = if b then 10 else 1
 
 instance RunModel EscrowModel E.EmulatorM where
-  perform _ cmd _ = lift $ act cmd
+  perform _ cmd _ = lift $ voidCatch $ act cmd
+
+voidCatch m = catchError (void m) (\ _ -> pure ())
 
 act :: Action EscrowModel -> E.EmulatorM ()
 act = \case
