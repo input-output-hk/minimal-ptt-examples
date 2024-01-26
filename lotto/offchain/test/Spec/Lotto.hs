@@ -147,7 +147,7 @@ instance ContractModel LottoModel where
       withdraw (walletAddr Lotto.organiser) (Lib.ada 10)
       secret .= scrt
       salt .= slt
-      endSlot .= curSlot + 5
+      endSlot .= curSlot + 10 -- 5 -- change this to break contract
       phase .= Minting
       wait 1
     MintSeal _ -> do
@@ -209,7 +209,7 @@ instance ContractModel LottoModel where
       phase .= Resolving
 
 
-  validFailingAction _ _ = True
+  validFailingAction _ _ = False
 
 voidCatch m = catchError (void m) (\ _ -> pure ())
 
@@ -220,14 +220,14 @@ instance RunModel LottoModel (SuperMockChain ()) where
   -- `perform` runs API actions by calling the off-chain code of
   -- the contract in the `SuperMockChain` monad.
 
-  perform _ (Open s slt) _ = voidCatch $ do
+  perform _ (Open s slt) _ = void $ do
     let
       secret = toBuiltinByteString s
       salt = toBuiltinByteString slt
       hashedSecret = Lib.hashSecret secret (Just salt)
     (initLottoRef, initLotto) <- Lotto.open def hashedSecret salt
     registerTxIn "Lotto txIn"  (toTxIn initLottoRef)
-  perform s (MintSeal _) translate = voidCatch $ do
+  perform s (MintSeal _) translate = void $ do
     let mref = translate <$> s ^. contractState . txIn
         lotto = s ^. contractState . value
         sealPolicy = TScripts.Versioned (Lib.mkMintingPolicy Lotto.script) TScripts.PlutusV2
@@ -236,7 +236,7 @@ instance RunModel LottoModel (SuperMockChain ()) where
                                           (Ada.adaValueOf $ fromInteger lotto)
     registerTxIn "Lotto txIn"  (toTxIn ref)
     registerToken "Lotto token" (toAssetId (assetClass currency tname))
-  perform s (Play g v w) translate = voidCatch $ do
+  perform s (Play g v w) translate = void $ do
     let mref  = translate <$> s ^. contractState . txIn
         seal  = translate <$> s ^. contractState . token
         lotto = s ^. contractState . value
@@ -252,7 +252,7 @@ instance RunModel LottoModel (SuperMockChain ()) where
                       (wallet w)
                       (Ada.adaValueOf $ fromInteger v)
     registerTxIn "Lotto txIn"  (toTxIn ref)
-  perform s (Resolve _) translate = voidCatch $ do
+  perform s (Resolve _) translate = void $ do
     let mref  = translate <$> s ^. contractState . txIn
         lotto = s ^. contractState . value
         scrt  = s ^. contractState . secret
@@ -275,6 +275,11 @@ instance RunModel LottoModel (SuperMockChain ()) where
 prop_Lotto :: Property
 prop_Lotto = noShrinking $ QC.withMaxSuccess 100 $ (propRunActions @LottoModel testInit () balanceChangePredicate)
 
+-- | A standard property that runs the `doubleSatisfaction` threat
+-- model against the auction contract to check for double satisfaction
+-- vulnerabilities.
+prop_doubleSatisfaction :: Actions LottoModel -> Property
+prop_doubleSatisfaction = propRunActions testInit () (assertThreatModel doubleSatisfaction)
 
 getTokenName :: AssetId -> TokenName
 getTokenName (AssetId sym (AssetName tok)) = TokenName (Builtins.toBuiltin tok)
@@ -299,7 +304,13 @@ unitTest1 = do
              action $ Open "jane" "asldkjk"
              action $ MintSeal 4
              action $ Play "bob" 20 8
-             -- waitUntilDL 200000
+             action $ Play "alice" 20 7
+             action $ Play "jane" 20 6
+             action $ Play "steven" 20 5
+             action $ Play "bob" 20 3
+             action $ Play "john" 20 2
+             action $ Play "smith" 20 2
+             waitUntilDL 200
              action $ Resolve 4
 
 prop_Lotto' :: Actions LottoModel -> Property
