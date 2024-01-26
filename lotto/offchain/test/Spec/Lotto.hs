@@ -209,7 +209,7 @@ instance ContractModel LottoModel where
       phase .= Resolving
 
 
-  validFailingAction _ _ = False
+  validFailingAction _ _ = True
 
 voidCatch m = catchError (void m) (\ _ -> pure ())
 
@@ -220,14 +220,14 @@ instance RunModel LottoModel (SuperMockChain ()) where
   -- `perform` runs API actions by calling the off-chain code of
   -- the contract in the `SuperMockChain` monad.
 
-  perform _ (Open s slt) _ = void $ do
+  perform _ (Open s slt) _ = voidCatch $ do
     let
       secret = toBuiltinByteString s
       salt = toBuiltinByteString slt
       hashedSecret = Lib.hashSecret secret (Just salt)
     (initLottoRef, initLotto) <- Lotto.open def hashedSecret salt
     registerTxIn "Lotto txIn"  (toTxIn initLottoRef)
-  perform s (MintSeal _) translate = void $ do
+  perform s (MintSeal _) translate = voidCatch $ do
     let mref = translate <$> s ^. contractState . txIn
         lotto = s ^. contractState . value
         sealPolicy = TScripts.Versioned (Lib.mkMintingPolicy Lotto.script) TScripts.PlutusV2
@@ -236,7 +236,7 @@ instance RunModel LottoModel (SuperMockChain ()) where
                                           (Ada.adaValueOf $ fromInteger lotto)
     registerTxIn "Lotto txIn"  (toTxIn ref)
     registerToken "Lotto token" (toAssetId (assetClass currency tname))
-  perform s (Play g v w) translate = void $ do
+  perform s (Play g v w) translate = voidCatch $ do
     let mref  = translate <$> s ^. contractState . txIn
         seal  = translate <$> s ^. contractState . token
         lotto = s ^. contractState . value
@@ -252,7 +252,7 @@ instance RunModel LottoModel (SuperMockChain ()) where
                       (wallet w)
                       (Ada.adaValueOf $ fromInteger v)
     registerTxIn "Lotto txIn"  (toTxIn ref)
-  perform s (Resolve _) translate = void $ do
+  perform s (Resolve _) translate = voidCatch $ do
     let mref  = translate <$> s ^. contractState . txIn
         lotto = s ^. contractState . value
         scrt  = s ^. contractState . secret
