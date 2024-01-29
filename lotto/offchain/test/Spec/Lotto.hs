@@ -74,8 +74,38 @@ import qualified Plutus.Script.Utils.Typed as TScripts
 
 import qualified PlutusTx.AssocMap as AssocMap
 
+import Lotto (Setup(..))
+import qualified PlutusTx.Prelude as Tx
+import qualified Data.Time.Clock as Time
+import Cardano.Node.Emulator.TimeSlot (SlotConfig(..))
+
+import Debug.Trace
+
+lottoSetup :: Setup
+lottoSetup = Setup
+             { duration = Time.secondsToNominalDiffTime 15,
+               bidAmount = Lib.ada 10,
+               margin = Tx.unsafeRatio 3 100
+             }
+
+lottoSlotConfig :: SlotConfig
+lottoSlotConfig = SlotConfig{ scSlotLength = 1000, scSlotZeroTime = LedgerV2.POSIXTime 0 }
 
 
+h'' :: IO SlotNo
+h'' = do
+       slot <- TimeSlot.currentSlot def
+       return $ toSlotNo slot
+
+h' :: SlotNo
+h' = toSlotNo . TimeSlot.posixTimeToEnclosingSlot lottoSlotConfig $ helpMe'
+
+helpMe' :: LedgerV2.POSIXTime
+helpMe' = TimeSlot.nominalDiffTimeToPOSIXTime (duration lottoSetup)
+
+helpMe :: SlotNo
+helpMe = toSlotNo . TimeSlot.posixTimeToEnclosingSlot def
+                     $ TimeSlot.nominalDiffTimeToPOSIXTime (duration lottoSetup)
 
 -- | initial distribution
 testInit :: InitialDistribution
@@ -137,8 +167,11 @@ instance ContractModel LottoModel where
     Open scrt slt -> do
       curSlot <- viewModelState currentSlot
 
-      let deadline = toSlotNo . TimeSlot.posixTimeToEnclosingSlot def
-                     $ TimeSlot.nominalDiffTimeToPOSIXTime (Lotto.duration def)
+      let deadline = toSlotNo . TimeSlot.posixTimeToEnclosingSlot lottoSlotConfig -- def
+                     $ TimeSlot.nominalDiffTimeToPOSIXTime (duration lottoSetup)
+
+      -- traceShow deadline $ pure ()
+      -- traceShow curSlot $ pure ()
 
       theTxIn <- createTxIn "Lotto txIn"
       txIn        .= Just theTxIn
@@ -147,7 +180,7 @@ instance ContractModel LottoModel where
       withdraw (walletAddr Lotto.organiser) (Lib.ada 10)
       secret .= scrt
       salt .= slt
-      endSlot .= curSlot + 10 -- 5 -- change this to break contract
+      endSlot .= deadline  -- curSlot + 5 -- change this to break contract
       phase .= Minting
       wait 1
     MintSeal _ -> do
@@ -177,6 +210,11 @@ instance ContractModel LottoModel where
                 (toBuiltinByteString sc)
                 (fixGuesses gs)
 
+      -- Needed to account for fact that we can resolve at any time
+      -- so the organiser gets their ada back if there have been no plays
+      -- let organiserWinnings = if gs == [] then 0
+      --                                    else vl - sum (map snd targets)
+
       let organiserWinnings = vl - sum (map snd targets)
 
       deposit (walletAddr Lotto.organiser) (Ada.adaValueOf $ fromInteger organiserWinnings)
@@ -186,10 +224,10 @@ instance ContractModel LottoModel where
       wait 1
 
   precondition s a = case a of
-    Open secret sale -> currentPhase == Initial
+    Open secret sale -> True -- currentPhase == Initial
     MintSeal _ -> currentPhase == Minting
-    Play g v w -> w /= 4 &&
-                  currentPhase == Playing
+    Play g v w -> w /= 4
+                  && currentPhase == Playing
     Resolve _ -> currentPhase == Resolving
     where currentPhase = s ^. contractState . phase
 
@@ -208,8 +246,27 @@ instance ContractModel LottoModel where
     when ((slot >= deadline) && (s == Playing)) $ do
       phase .= Resolving
 
+-- Things we can do that with negative testing
+  -- open multiple contracts
+  -- play after fake deadline imposed by contract
+  -- wallet 5 can actually play
 
+  -- Surprising errors found:
+    -- you can resolve with no players
+
+  -- we can probably play after a resolve perhaps
   validFailingAction _ _ = False
+
+{-
+  validFailingAction s (Open secret sale) = True
+  validFailingAction s (MintSeal seal) = True -- s ^. contractState . txIn /= Nothing
+  validFailingAction s (Play g v w) = w /= 4
+                                      -- s ^. contractState . txIn /= Nothing
+                                      -- && s ^. currentSlot < s ^. contractState . endSlot
+                                      -- && w /= 4
+  validFailingAction s (Resolve seal) = False --  ^. contractState . txIn /= Nothing
+                                              --  && s ^. contractState . token /= Nothing
+-}
 
 voidCatch m = catchError (void m) (\ _ -> pure ())
 
@@ -225,9 +282,12 @@ instance RunModel LottoModel (SuperMockChain ()) where
       secret = toBuiltinByteString s
       salt = toBuiltinByteString slt
       hashedSecret = Lib.hashSecret secret (Just salt)
-    (initLottoRef, initLotto) <- Lotto.open def hashedSecret salt
+    (initLottoRef, initLotto) <- Lotto.open lottoSetup hashedSecret salt
     registerTxIn "Lotto txIn"  (toTxIn initLottoRef)
-  perform s (MintSeal _) translate = void $ do
+  perform s (MintSeal _) translate = void $
+    if (s ^. contractState . txIn == Nothing)
+    then do throwError $ FailWith "Empty TxIn"
+    else do
     let mref = translate <$> s ^. contractState . txIn
         lotto = s ^. contractState . value
         sealPolicy = TScripts.Versioned (Lib.mkMintingPolicy Lotto.script) TScripts.PlutusV2
@@ -236,7 +296,10 @@ instance RunModel LottoModel (SuperMockChain ()) where
                                           (Ada.adaValueOf $ fromInteger lotto)
     registerTxIn "Lotto txIn"  (toTxIn ref)
     registerToken "Lotto token" (toAssetId (assetClass currency tname))
-  perform s (Play g v w) translate = void $ do
+  perform s (Play g v w) translate = void $
+    if (s ^. contractState . txIn == Nothing)
+    then do throwError $ FailWith "Empty TxIn"
+    else do
     let mref  = translate <$> s ^. contractState . txIn
         seal  = translate <$> s ^. contractState . token
         lotto = s ^. contractState . value
@@ -252,7 +315,10 @@ instance RunModel LottoModel (SuperMockChain ()) where
                       (wallet w)
                       (Ada.adaValueOf $ fromInteger v)
     registerTxIn "Lotto txIn"  (toTxIn ref)
-  perform s (Resolve _) translate = void $ do
+  perform s (Resolve _) translate = void $
+    if (s ^. contractState . txIn == Nothing) || (s ^. contractState . token == Nothing)
+    then do throwError $ FailWith "Empty TxIn or Empty Token"
+    else do
     let mref  = translate <$> s ^. contractState . txIn
         lotto = s ^. contractState . value
         scrt  = s ^. contractState . secret
@@ -273,7 +339,8 @@ instance RunModel LottoModel (SuperMockChain ()) where
 -- predicted by the `ContractModel` instance match the balance changes produced
 -- by the `RunModel` instance - up to minimum ada requirements on UTxOs.
 prop_Lotto :: Property
-prop_Lotto = noShrinking $ QC.withMaxSuccess 100 $ (propRunActions @LottoModel testInit () balanceChangePredicate)
+prop_Lotto = -- noShrinking $
+             QC.withMaxSuccess 100 $ (propRunActions @LottoModel testInit () balanceChangePredicate)
 
 -- | A standard property that runs the `doubleSatisfaction` threat
 -- model against the auction contract to check for double satisfaction
@@ -310,14 +377,29 @@ unitTest1 = do
              action $ Play "bob" 20 3
              action $ Play "john" 20 2
              action $ Play "smith" 20 2
-             waitUntilDL 200
+             waitUntilDL 20
              action $ Resolve 4
+
+unitTest2 :: DL LottoModel ()
+unitTest2 = do
+             action $ Open "alice" "saduenf"
+             action $ MintSeal 6
+             action $ Play "smith" 20 10
+             waitUntilDL 6
+             action $ Resolve 10
+
+unitTest3 :: DL LottoModel ()
+unitTest3 = do
+             action $ Open "alice" "saduenf"
+             action $ MintSeal 6
+             waitUntilDL 11
+             action $ Play "smith" 20 10
 
 prop_Lotto' :: Actions LottoModel -> Property
 prop_Lotto' = propRunActions testInit () balanceChangePredicate
 
 propTest :: Property
-propTest = withMaxSuccess 1 $ forAllDL unitTest1 prop_Lotto'
+propTest = noShrinking $ withMaxSuccess 1 $ forAllDL unitTest1 prop_Lotto'
 
 fixGuesses :: [(Int, String)] -> [(Wallet, BuiltinByteString)]
 fixGuesses xs = map (\ (w , s) -> ((wallet w) , toBuiltinByteString s)) xs
