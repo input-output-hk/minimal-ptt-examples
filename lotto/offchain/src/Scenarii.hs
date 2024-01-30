@@ -527,3 +527,52 @@ manyWalletPlay' setup salt secret = do
     multiplePlays salt secret seal alicePlays (map Cooked.wallet [3..7])
     -- will cause CekEvaluationError once wallet size reaches: [3..8]
   void $ Lotto.resolve' secret (helper manyPlays) seal
+
+
+-- | A trace found in the contract model that breaks the validator
+badTrace ::
+  Cooked.MonadModalBlockChain m =>
+  Lotto.Setup ->
+  -- | Salt
+  BuiltinByteString ->
+  -- | Secret
+  BuiltinByteString ->
+  m ()
+badTrace setup salt secret = do
+  let hashedSecret = Lib.hashSecret secret (Just salt)
+  (initLottoRef, initLotto) <- Lotto.open setup hashedSecret salt
+  (authenticatedLottoRef, authenticatedLotto, seal) <-
+    Lotto.mintSeal initLottoRef (initLotto ^. Cooked.outputValueL)
+  fstPlay <-
+    Lotto.play
+      authenticatedLottoRef
+      seal
+      (authenticatedLotto ^. Cooked.outputValueL)
+      (Lib.hashSecret "jane" (Just salt))
+      (Cooked.wallet 2)
+      (Lib.ada 11)
+  sndPlay <-
+    Lotto.play
+      (fst fstPlay)
+      seal
+      (snd fstPlay ^. Cooked.outputValueL)
+      (Lib.hashSecret "jane" (Just salt))
+      (Cooked.wallet 3)
+      (Lib.ada 28)
+  trdPlay <-
+    Lotto.play
+      (fst sndPlay)
+      seal
+      (snd sndPlay ^. Cooked.outputValueL)
+      (Lib.hashSecret "john" (Just salt))
+      (Cooked.wallet 3)
+      (Lib.ada 11)
+  fthPlay <-
+    Lotto.play
+      (fst trdPlay)
+      seal
+      (snd trdPlay ^. Cooked.outputValueL)
+      (Lib.hashSecret "steven" (Just salt))
+      (Cooked.wallet 5)
+      (Lib.ada 15)
+  void $ Lotto.resolve secret fthPlay seal

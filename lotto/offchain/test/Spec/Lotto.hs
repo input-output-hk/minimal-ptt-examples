@@ -83,7 +83,7 @@ import Debug.Trace
 
 lottoSetup :: Setup
 lottoSetup = Setup
-             { duration = Time.secondsToNominalDiffTime 15,
+             { duration = Time.secondsToNominalDiffTime 10, -- If this is too big then the datum can grow too large
                bidAmount = Lib.ada 10,
                margin = Tx.unsafeRatio 3 100
              }
@@ -180,7 +180,7 @@ instance ContractModel LottoModel where
       withdraw (walletAddr Lotto.organiser) (Lib.ada 10)
       secret .= scrt
       salt .= slt
-      endSlot .= deadline  -- curSlot + 5 -- change this to break contract
+      endSlot .= curSlot + deadline
       phase .= Minting
       wait 1
     MintSeal _ -> do
@@ -210,21 +210,18 @@ instance ContractModel LottoModel where
                 (toBuiltinByteString sc)
                 (fixGuesses gs)
 
-      -- Needed to account for fact that we can resolve at any time
-      -- so the organiser gets their ada back if there have been no plays
-      -- let organiserWinnings = if gs == [] then 0
-      --                                    else vl - sum (map snd targets)
-
       let organiserWinnings = vl - sum (map snd targets)
 
       deposit (walletAddr Lotto.organiser) (Ada.adaValueOf $ fromInteger organiserWinnings)
       sequence_ [ deposit (walletAddr w) (Ada.adaValueOf $ fromInteger v) | (w, v) <- targets ]
 
+      txIn  .= Nothing -- Needed to block negative testing to block fromJust error
+      token .= Nothing
       phase .= Initial
       wait 1
 
   precondition s a = case a of
-    Open secret sale -> True -- currentPhase == Initial
+    Open secret sale -> currentPhase == Initial
     MintSeal _ -> currentPhase == Minting
     Play g v w -> w /= 4
                   && currentPhase == Playing
@@ -248,6 +245,8 @@ instance ContractModel LottoModel where
 
 -- Things we can do that with negative testing
   -- open multiple contracts
+    -- you can open at any time but then the contract will not be explored deep enough
+    -- can either be resolved by negatively weighting open or restricting open to an initial state
   -- play after fake deadline imposed by contract
   -- wallet 5 can actually play
 
@@ -255,18 +254,20 @@ instance ContractModel LottoModel where
     -- you can resolve with no players
 
   -- we can probably play after a resolve perhaps
-  validFailingAction _ _ = False
+  -- validFailingAction _ _ = False
 
-{-
-  validFailingAction s (Open secret sale) = True
+  -- Negative Testing Report
+    -- You can always open a new contract h
+
+
+  validFailingAction s (Open secret sale) = False -- True
   validFailingAction s (MintSeal seal) = True -- s ^. contractState . txIn /= Nothing
   validFailingAction s (Play g v w) = w /= 4
-                                      -- s ^. contractState . txIn /= Nothing
-                                      -- && s ^. currentSlot < s ^. contractState . endSlot
-                                      -- && w /= 4
-  validFailingAction s (Resolve seal) = False --  ^. contractState . txIn /= Nothing
-                                              --  && s ^. contractState . token /= Nothing
--}
+                                      && s ^. contractState . txIn /= Nothing
+  validFailingAction s (Resolve seal) = False
+                                        -- s ^. contractState . txIn /= Nothing
+                                        -- && s ^. contractState . token /= Nothing
+
 
 voidCatch m = catchError (void m) (\ _ -> pure ())
 
@@ -277,14 +278,14 @@ instance RunModel LottoModel (SuperMockChain ()) where
   -- `perform` runs API actions by calling the off-chain code of
   -- the contract in the `SuperMockChain` monad.
 
-  perform _ (Open s slt) _ = void $ do
+  perform _ (Open s slt) _ = voidCatch $ do
     let
       secret = toBuiltinByteString s
       salt = toBuiltinByteString slt
       hashedSecret = Lib.hashSecret secret (Just salt)
     (initLottoRef, initLotto) <- Lotto.open lottoSetup hashedSecret salt
     registerTxIn "Lotto txIn"  (toTxIn initLottoRef)
-  perform s (MintSeal _) translate = void $
+  perform s (MintSeal _) translate = voidCatch $
     if (s ^. contractState . txIn == Nothing)
     then do throwError $ FailWith "Empty TxIn"
     else do
@@ -296,7 +297,7 @@ instance RunModel LottoModel (SuperMockChain ()) where
                                           (Ada.adaValueOf $ fromInteger lotto)
     registerTxIn "Lotto txIn"  (toTxIn ref)
     registerToken "Lotto token" (toAssetId (assetClass currency tname))
-  perform s (Play g v w) translate = void $
+  perform s (Play g v w) translate = voidCatch $
     if (s ^. contractState . txIn == Nothing)
     then do throwError $ FailWith "Empty TxIn"
     else do
@@ -315,7 +316,7 @@ instance RunModel LottoModel (SuperMockChain ()) where
                       (wallet w)
                       (Ada.adaValueOf $ fromInteger v)
     registerTxIn "Lotto txIn"  (toTxIn ref)
-  perform s (Resolve _) translate = void $
+  perform s (Resolve _) translate = voidCatch $
     if (s ^. contractState . txIn == Nothing) || (s ^. contractState . token == Nothing)
     then do throwError $ FailWith "Empty TxIn or Empty Token"
     else do
@@ -395,11 +396,37 @@ unitTest3 = do
              waitUntilDL 11
              action $ Play "smith" 20 10
 
+-- potential bug
+unitTest4 :: DL LottoModel ()
+unitTest4 = do
+  action $ Open "steven" "aslkdjs"
+  action $ MintSeal 9
+  action $ Play "jane" 11 2
+  action $ Play "jane" 28 3
+  action $ Play "john" 11 3
+  action $ Play "steven" 15 5
+  waitUntilDL 16
+  action $ Resolve 3
+
+unitTest5 :: DL LottoModel ()
+unitTest5 = do
+             action $ Open "alice" "saduenf"
+             action $ MintSeal 6
+             waitUntilDL 6
+             action $ Resolve 10
+             action $ Play "smith" 20 10
+
+unitTest6 :: DL LottoModel ()
+unitTest6 = do
+             action $ Open "alice" "saduenf"
+             action $ MintSeal 6
+             action $ Resolve 10
+
 prop_Lotto' :: Actions LottoModel -> Property
 prop_Lotto' = propRunActions testInit () balanceChangePredicate
 
 propTest :: Property
-propTest = noShrinking $ withMaxSuccess 1 $ forAllDL unitTest1 prop_Lotto'
+propTest = noShrinking $ withMaxSuccess 1 $ forAllDL unitTest6 prop_Lotto'
 
 fixGuesses :: [(Int, String)] -> [(Wallet, BuiltinByteString)]
 fixGuesses xs = map (\ (w , s) -> ((wallet w) , toBuiltinByteString s)) xs

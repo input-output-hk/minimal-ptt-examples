@@ -45,7 +45,9 @@ tests =
       testCase "Many player sequence" . Testing.testSucceeds def $
         Scenarii.manyWalletPlay def "salt" "secret",
       testCase "Many player sequence with resolve'" . Testing.testSucceeds def $
-        Scenarii.manyWalletPlay' def "salt" "secret"
+        Scenarii.manyWalletPlay' def "salt" "secret",
+      testCase "Broken trace in contract model"  . Testing.testSucceeds def $
+        Scenarii.badTrace def "aslkdjs" "steven"
     ]
 
 main :: IO ()
