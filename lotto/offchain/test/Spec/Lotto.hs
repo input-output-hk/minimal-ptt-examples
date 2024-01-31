@@ -246,7 +246,7 @@ instance ContractModel LottoModel where
 
   precondition s a = case a of
     Open secret sale -> currentPhase == Initial
-    MintSeal _ -> True -- currentPhase == Minting
+    MintSeal _ -> currentPhase == Minting
     Play g v w -> w /= 4
                   && currentPhase == Playing
     Resolve _ -> currentPhase == Resolving
