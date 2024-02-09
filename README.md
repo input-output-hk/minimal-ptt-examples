@@ -1,5 +1,7 @@
 # Experimental minimal escrow contract repository
 
+Additional repository for the Escrow contract with coverage disabled. This is because enabling coverage increases the UTXO size. This makes a difference to the Escrow contract so it is useful to test with this disabled. 
+
 ## Current Build Instructions
 
 1. go to the escrow folder 
