@@ -1,5 +1,7 @@
 # Experimental minimal escrow contract repository
 
+Escrow contract model example running on the plutus-apps emulator.
+
 ## Current Build Instructions
 
 1. go to the escrow folder 
