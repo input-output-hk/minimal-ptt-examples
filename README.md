@@ -1,8 +1,8 @@
-# Experimental minimal escrow contract repository
+# Experimental minimal vesting contract repository
 
 ## Current Build Instructions
 
-1. go to the escrow folder 
+1. go to the vesting folder 
 2. run `nix develop`
 3. `cabal build certification`
 
