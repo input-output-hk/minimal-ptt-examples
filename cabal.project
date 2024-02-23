@@ -1,4 +1,5 @@
 packages: .
+          plutus-contract-certification
 --          certification
 
 -- Custom repository for cardano haskell packages

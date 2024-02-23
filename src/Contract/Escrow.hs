@@ -40,6 +40,8 @@ module Contract.Escrow (
 
   -- * Exposed for test endpoints
   Action (..),
+  Datum,
+  validate,
 
   -- * Coverage
   covIdx,

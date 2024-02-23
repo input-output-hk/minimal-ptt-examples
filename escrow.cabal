@@ -105,6 +105,7 @@ test-suite escrow-test
   ghc-options:      -Wno-unused-packages
   other-modules:
     Spec.Escrow
+    -- Contract.ToUPLC
 
   --------------------
   -- Local components
@@ -144,3 +145,4 @@ test-suite escrow-test
     , tasty-hunit
     , tasty-quickcheck
     , text
+    -- , flat
