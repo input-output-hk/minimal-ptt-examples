@@ -60,7 +60,6 @@ library
   --------------------------
   build-depends:
     , plutus-tx           >=1.0.0
-    , quickcheck-dynamic  >=2.0
 
   ------------------------
   -- Non-IOG dependencies

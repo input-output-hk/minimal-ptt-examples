@@ -12,22 +12,18 @@
 {-# LANGUAGE UndecidableInstances  #-}
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
-module Plutus.Contract.Test.Certification.Run () where
- {- ( -- * A certification report holds all the necessary information
+module Plutus.Contract.Test.Certification.Run
+  ( -- * A certification report holds all the necessary information
     -- to make sense of certification results
     CertificationReport
   , certResJSON
   -- * There are a tonne of lenses
   , certRes_standardPropertyResult
-  -- TODO: turn on when double satisfaction is activated again
-  -- , certRes_doubleSatisfactionResult
+  , certRes_doubleSatisfactionResult
   , certRes_noLockedFundsResult
   , certRes_noLockedFundsLightResult
-  , certRes_standardCrashToleranceResult
   , certRes_unitTestResults
   , certRes_coverageReport
-  , certRes_whitelistOk
-  , certRes_whitelistResult
   , certRes_DLTests
   -- * and we have a function for running certification
   , CertificationOptions(..)
@@ -42,7 +38,7 @@ module Plutus.Contract.Test.Certification.Run () where
   , certifyWithOptions
   , certifyWithCheckOptions
   , genCoverageFile
-  ) where -}
+  ) where
 
 import Control.Concurrent.Chan
 import Control.Concurrent.STM
@@ -54,13 +50,6 @@ import Data.ByteString.Lazy.Char8 (unpack)
 import Data.IntMap qualified as IntMap
 import Data.Maybe
 import GHC.Generics
-
-{-
-import Plutus.Contract.Test ( CheckOptions )
-import Plutus.Contract.Test.Certification
-import Plutus.Contract.Test.ContractModel
-import Plutus.Contract.Test.ContractModel.CrashTolerance
--}
 
 import Plutus.Contract.Test.Certification
 import Cardano.Node.Emulator.Test
@@ -129,15 +118,11 @@ instance ToJSON Tasty.Result where
 
 data CertificationReport m = CertificationReport {
     _certRes_standardPropertyResult       :: QC.Result,
-    -- TODO: turn on again later
-    -- _certRes_doubleSatisfactionResult     :: QC.Result,
+    _certRes_doubleSatisfactionResult     :: QC.Result,
     _certRes_noLockedFundsResult          :: Maybe QC.Result,
     _certRes_noLockedFundsLightResult     :: Maybe QC.Result,
-    _certRes_standardCrashToleranceResult :: Maybe QC.Result,
     _certRes_unitTestResults              :: [Tasty.Result],
     _certRes_coverageReport               :: CoverageReport,
-    _certRes_whitelistOk                  :: Maybe Bool,
-    _certRes_whitelistResult              :: Maybe QC.Result,
     _certRes_DLTests                      :: [(String, QC.Result)]
   } deriving (Show, Generic, ToJSON)
 makeLenses ''CertificationReport
@@ -154,11 +139,9 @@ data CertificationEvent = QuickCheckTestEvent (Maybe Bool)  -- ^ Nothing if disc
 
 data CertificationTask = UnitTestsTask
                        | StandardPropertyTask
-                       -- | DoubleSatisfactionTask
+                       | DoubleSatisfactionTask
                        | NoLockedFundsTask
                        | NoLockedFundsLightTask
-                       | CrashToleranceTask
-                       | WhitelistTask
                        | DLTestsTask
   deriving (Eq, Show, Enum, Bounded, Ord)
 
@@ -171,11 +154,9 @@ certificationTasks Certification{..} = filter run [minBound..maxBound]
   where
     run UnitTestsTask          = isJust certUnitTests
     run StandardPropertyTask   = True
-    -- run DoubleSatisfactionTask = True
+    run DoubleSatisfactionTask = True
     run NoLockedFundsTask      = isJust certNoLockedFunds
     run NoLockedFundsLightTask = isJust certNoLockedFundsLight
-    -- run CrashToleranceTask     = isJust certCrashTolerance
-    -- run WhitelistTask          = isJust certWhitelist
     run DLTestsTask            = not $ null certDLTests
 
 data CertificationOptions = CertificationOptions { certOptNumTests  :: Int
@@ -238,57 +219,43 @@ runStandardProperty :: forall m. RunModel m E.EmulatorM => CertificationOptions 
 runStandardProperty opts copts = liftIORep $ quickCheckWithCoverageAndResult
                                    (mkQCArgs opts)
                                    copts
-                                 $ \ covopts -> addOnTestEvents opts $
-                                                propRunActionsWithOptions
+                                   $ \ _ -> addOnTestEvents opts $
+                                              propRunActionsWithOptions
+                                                @m
+                                                copts
+
+checkDS :: forall m. RunModel m E.EmulatorM => CertificationOptions -> (Options m) -> CertMonad QC.Result
+checkDS opts copts = liftIORep $ quickCheckWithCoverageAndResult
+                                   (mkQCArgs opts)
+                                   copts
+                                   $ \ _ -> addOnTestEvents opts $
+                                                checkDoubleSatisfactionWithOptions
                                                   @m
                                                   copts
 
-
-
-
-{-
-CertMonad QC.Result
-runStandardProperty opts copts acts = liftIORep $ quickCheckWithCoverageAndResult
-                                  (mkQCArgs opts)
-                                  copts
-                                  $ propRunActionsWithOptions copts acts (\ _ -> pure True)
--}
-
--- TODO: turn on when double satisfaction is re-implemented
--- checkDS :: forall m. ContractModel m => CertificationOptions -> CoverageIndex -> (Options m) -> CertMonad QC.Result
--- checkDS opts covIdx copts = liftIORep $ quickCheckWithCoverageAndResult
---                                   (mkQCArgs opts)
---                                   (set coverageIndex covIdx defaultCoverageOptions)
---                                 $ \ covopts -> addOnTestEvents opts $
---                                                checkDoubleSatisfactionWithOptions
---                                                  @m
---                                                  copts
---                                                  covopts
-
-{-
-checkNoLockedFunds :: ContractModel m => CertificationOptions -> (Options m) -> NoLockedFundsProof m -> CertMonad QC.Result
+checkNoLockedFunds :: forall m. RunModel m E.EmulatorM => CertificationOptions -> (Options m) -> NoLockedFundsProof m -> CertMonad QC.Result
 checkNoLockedFunds opts copts prf = lift $ quickCheckWithResult
                                        (mkQCArgs opts)
                                        $ addOnTestEvents opts $ checkNoLockedFundsProofWithOptions copts prf
 
-checkNoLockedFundsLight :: ContractModel m => CertificationOptions -> NoLockedFundsProofLight m -> CertMonad QC.Result
+
+checkNoLockedFundsLight :: forall m. RunModel m E.EmulatorM => CertificationOptions -> NoLockedFundsProofLight m -> CertMonad QC.Result
 checkNoLockedFundsLight opts prf =
   lift $ quickCheckWithResult
           (mkQCArgs opts)
           $ addOnTestEvents opts $ checkNoLockedFundsProofLight prf
--}
 
 mkQCArgs :: CertificationOptions -> Args
 mkQCArgs CertificationOptions{..} = stdArgs { chatty = certOptOutput , maxSuccess = certOptNumTests }
 
-{-
+
 runUnitTests :: ((IORef CoverageData) -> Tasty.TestTree) -> CertMonad [Tasty.Result]
 runUnitTests t = liftIORep $ do
-    ref <- newIORef mempty -- newCoverageRef
+    ref <- newIORef mempty
     res <- Tasty.launchTestTree mempty (t ref) $ \ status -> do
       rs <- atomically $ mapM waitForDone (IntMap.elems status)
       return $ \ _ -> return rs
-    cov <- readIORef ref -- readCoverageRef ref
+    cov <- readIORef ref
     return (CoverageReport mempty cov, res)
   where
     waitForDone tv = do
@@ -297,55 +264,22 @@ runUnitTests t = liftIORep $ do
         Tasty.Done r -> return r
         _            -> retry
 
-checkDerived :: forall d m c. (c m => ContractModel (d m))
-             => Maybe (Instance c m)
-             -> CertificationOptions
-             -> CertificationTask
-             -> CoverageIndex
-             -> (Options m)
-             -> CertMonad (Maybe QC.Result)
-checkDerived Nothing _ _ _ _                  = return Nothing
-checkDerived (Just Instance) opts task covIdx copts =
-  Just <$> wrapQCTask opts task (runStandardProperty @(d m) opts covIdx copts)
-
-{-
-checkWhitelist :: forall m. ContractModel m
-               => Maybe Whitelist
-               -> CertificationOptions
-               -> CoverageIndex
-               -> (Options m)
-               -> CertMonad (Maybe QC.Result)
-checkWhitelist Nothing _ _ _         = return Nothing
-checkWhitelist (Just wl) opts covIdx copts = do
-  a <- wrapQCTask opts WhitelistTask
-     $ liftIORep $ quickCheckWithCoverageAndResult
-                  (mkQCArgs opts)
-                  (set coverageIndex covIdx defaultCoverageOptions)
-                  $ \ covopts -> addOnTestEvents opts $
-                                 checkErrorWhitelistWithOptions @m
-                                    copts
-                                    covopts wl
-  return (Just a)
--}
-
-checkDLTests :: forall m. ContractModel m
+checkDLTests :: forall m. RunModel m E.EmulatorM
             => [(String, DL m ())]
             -> CertificationOptions
-            -> CoverageIndex
             -> (Options m)
             -> CertMonad [(String, QC.Result)]
-checkDLTests [] _ _ _ = pure []
-checkDLTests tests opts covIdx copts =
+checkDLTests [] _ _ = pure []
+checkDLTests tests opts copts =
   wrapTask opts DLTestsTask (Prelude.all (QC.isSuccess . snd))
   $ sequence [(s,) <$> liftIORep (quickCheckWithCoverageAndResult
                                     (mkQCArgs opts)
-                                    (set coverageIndex covIdx defaultCoverageOptions)
-                                    $ \ covopts ->
+                                    copts
+                                    $ \ _ ->
                                         addOnTestEvents opts $
                                         forAllDL dl (propRunActionsWithOptions
                                                       @m
-                                                      copts
-                                                      covopts (const $ pure True)))
+                                                      copts))
              | (s, dl) <- tests ]
 
 startTaskEvent :: CertificationOptions -> CertificationTask -> CertMonad ()
@@ -360,10 +294,10 @@ numTestsEvent :: CertificationOptions -> CertMonad ()
 numTestsEvent opts | Just ch <- certEventChannel opts = liftIO $ writeChan ch $ QuickCheckNumTestsEvent $ certOptNumTests opts
                    | otherwise                        = pure ()
 
-certify :: forall m. ContractModel m => Certification m -> IO (CertificationReport m)
+certify :: forall m. RunModel m E.EmulatorM => Certification m -> IO (CertificationReport m)
 certify m = certifyWithOptions defaultCertificationOptions defaultCertOptNumTests m
 
-certifyWithCheckOptions :: forall m. ContractModel m
+certifyWithCheckOptions :: forall m. RunModel m E.EmulatorM
                         => CertificationOptions
                         -> Certification m
                         -> CertOptNumTests
@@ -395,14 +329,14 @@ wrapQCTask :: CertificationOptions
            -> CertMonad QC.Result
 wrapQCTask opts task m = wrapTask opts task QC.isSuccess $ numTestsEvent opts >> m
 
-certifyWithOptions :: forall m. ContractModel m
+certifyWithOptions :: forall m. RunModel m E.EmulatorM
                    => CertificationOptions
                    -> CertOptNumTests
                    -> Certification m
                    -> IO (CertificationReport m)
 certifyWithOptions opts numTests m = certifyWithOptions' opts numTests m defaultOptions -- defaultCheckOptionsContractModel
 
-certifyWithOptions' :: forall m. ContractModel m
+certifyWithOptions' :: forall m. RunModel m E.EmulatorM
                    => CertificationOptions
                    -> CertOptNumTests
                    -> Certification m
@@ -414,37 +348,27 @@ certifyWithOptions' opts CertOptNumTests{..} Certification{..} copts = runCertMo
                 $ fromMaybe [] <$> traverse runUnitTests certUnitTests
   -- Standard property
   qcRes        <- wrapQCTask opts StandardPropertyTask
-                $ runStandardProperty @m (updateCertificationOptions opts numStandardProperty) certCoverageIndex copts
-  -- TODO: fixme when double sat done
+                $ runStandardProperty @m (updateCertificationOptions opts numStandardProperty) copts
   -- Double satisfaction
-  -- dsRes        <- wrapQCTask opts DoubleSatisfactionTask
-  --               $ checkDS @m opts certCoverageIndex copts
+  dsRes        <- wrapQCTask opts DoubleSatisfactionTask
+                  $ checkDS @m opts copts
   -- No locked funds
   noLock       <- traverse (wrapQCTask (updateCertificationOptions opts numNoLockedFunds) NoLockedFundsTask . checkNoLockedFunds (updateCertificationOptions opts numNoLockedFunds) copts)
                            certNoLockedFunds
   -- No locked funds light
   noLockLight  <- traverse (wrapQCTask (updateCertificationOptions opts numNoLockedFundsLight) NoLockedFundsLightTask . checkNoLockedFundsLight (updateCertificationOptions opts numNoLockedFundsLight))
                            certNoLockedFundsLight
-  -- Crash tolerance
-  -- ctRes        <- checkDerived @WithCrashTolerance certCrashTolerance (updateCertificationOptions opts numCrashTolerance) CrashToleranceTask certCoverageIndex copts
-  -- Whitelist
-  -- wlRes        <- checkWhitelist @m certWhitelist (updateCertificationOptions opts numWhiteList) certCoverageIndex copts
   -- DL tests
-  dlRes        <- checkDLTests @m certDLTests (updateCertificationOptions opts numDLTests) certCoverageIndex copts
+  dlRes        <- checkDLTests @m certDLTests (updateCertificationOptions opts numDLTests) copts
   case certEventChannel opts of
     Just ch -> liftIO $ writeChan ch CertificationDone
     Nothing -> pure ()
   -- Final results
   return $ CertificationReport
             { _certRes_standardPropertyResult       = qcRes
-            -- , _certRes_doubleSatisfactionResult     = dsRes
-            -- , _certRes_standardCrashToleranceResult = ctRes
+            , _certRes_doubleSatisfactionResult     = dsRes
             , _certRes_noLockedFundsResult          = noLock
             , _certRes_noLockedFundsLightResult     = noLockLight
             , _certRes_unitTestResults              = unitTests
             , _certRes_coverageReport               = CoverageReport certCoverageIndex mempty
-            -- , _certRes_whitelistOk                  = whitelistOk <$> certWhitelist
-            -- , _certRes_whitelistResult              = wlRes
             , _certRes_DLTests                      = dlRes }
-
--}
