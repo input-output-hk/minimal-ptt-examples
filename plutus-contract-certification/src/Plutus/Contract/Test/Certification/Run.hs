@@ -12,8 +12,8 @@
 {-# LANGUAGE UndecidableInstances  #-}
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
 
-module Plutus.Contract.Test.Certification.Run
-  ( -- * A certification report holds all the necessary information
+module Plutus.Contract.Test.Certification.Run () where
+ {- ( -- * A certification report holds all the necessary information
     -- to make sense of certification results
     CertificationReport
   , certResJSON
@@ -42,7 +42,7 @@ module Plutus.Contract.Test.Certification.Run
   , certifyWithOptions
   , certifyWithCheckOptions
   , genCoverageFile
-  ) where
+  ) where -}
 
 import Control.Concurrent.Chan
 import Control.Concurrent.STM
@@ -66,6 +66,7 @@ import Plutus.Contract.Test.Certification
 import Cardano.Node.Emulator.Test
 import Cardano.Node.Emulator.Test.Coverage
 import Cardano.Node.Emulator.Test.NoLockedFunds
+import Cardano.Node.Emulator qualified as E
 import Test.QuickCheck.ContractModel
 import Data.IORef
 
@@ -233,16 +234,25 @@ addOnTestEvents opts prop
     addCallback ch r = r { callbacks = cb : callbacks r }
       where cb = PostTest NotCounterexample $ \ _st res -> writeChan ch $ QuickCheckTestEvent (ok res)
 
-runStandardProperty :: forall m. ContractModel m => CertificationOptions -> CoverageIndex -> (Options m) ->  CertMonad QC.Result
-runStandardProperty opts covIdx copts = liftIORep $ quickCheckWithCoverageAndResult
+runStandardProperty :: forall m. RunModel m E.EmulatorM => CertificationOptions -> (Options m) -> CertMonad QC.Result
+runStandardProperty opts copts = liftIORep $ quickCheckWithCoverageAndResult
+                                   (mkQCArgs opts)
+                                   copts
+                                 $ \ covopts -> addOnTestEvents opts $
+                                                propRunActionsWithOptions
+                                                  @m
+                                                  copts
+
+
+
+
+{-
+CertMonad QC.Result
+runStandardProperty opts copts acts = liftIORep $ quickCheckWithCoverageAndResult
                                   (mkQCArgs opts)
-                                  (set coverageIndex covIdx defaultCoverageOptions)
-                                $ \ covopts -> addOnTestEvents opts $
-                                               propRunActionsWithOptions
-                                                 @m
-                                                 copts
-                                                 covopts
-                                                 (\ _ -> pure True)
+                                  copts
+                                  $ propRunActionsWithOptions copts acts (\ _ -> pure True)
+-}
 
 -- TODO: turn on when double satisfaction is re-implemented
 -- checkDS :: forall m. ContractModel m => CertificationOptions -> CoverageIndex -> (Options m) -> CertMonad QC.Result
@@ -255,6 +265,7 @@ runStandardProperty opts covIdx copts = liftIORep $ quickCheckWithCoverageAndRes
 --                                                  copts
 --                                                  covopts
 
+{-
 checkNoLockedFunds :: ContractModel m => CertificationOptions -> (Options m) -> NoLockedFundsProof m -> CertMonad QC.Result
 checkNoLockedFunds opts copts prf = lift $ quickCheckWithResult
                                        (mkQCArgs opts)
@@ -265,10 +276,12 @@ checkNoLockedFundsLight opts prf =
   lift $ quickCheckWithResult
           (mkQCArgs opts)
           $ addOnTestEvents opts $ checkNoLockedFundsProofLight prf
+-}
 
 mkQCArgs :: CertificationOptions -> Args
 mkQCArgs CertificationOptions{..} = stdArgs { chatty = certOptOutput , maxSuccess = certOptNumTests }
 
+{-
 runUnitTests :: ((IORef CoverageData) -> Tasty.TestTree) -> CertMonad [Tasty.Result]
 runUnitTests t = liftIORep $ do
     ref <- newIORef mempty -- newCoverageRef
@@ -433,3 +446,5 @@ certifyWithOptions' opts CertOptNumTests{..} Certification{..} copts = runCertMo
             -- , _certRes_whitelistOk                  = whitelistOk <$> certWhitelist
             -- , _certRes_whitelistResult              = wlRes
             , _certRes_DLTests                      = dlRes }
+
+-}
