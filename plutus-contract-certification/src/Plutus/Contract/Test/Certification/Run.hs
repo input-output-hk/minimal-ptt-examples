@@ -168,8 +168,7 @@ data CertificationOptions = CertificationOptions { certOptNumTests  :: Int
 data CertOptNumTests = CertOptNumTests { numStandardProperty   :: Int
                                        , numNoLockedFunds      :: Int
                                        , numNoLockedFundsLight :: Int
-                                       , numCrashTolerance     :: Int
-                                       , numWhiteList          :: Int
+                                       , numDoubleSatisfaction :: Int
                                        , numDLTests            :: Int
                                        }
 
@@ -177,8 +176,7 @@ defaultCertOptNumTests :: CertOptNumTests
 defaultCertOptNumTests = CertOptNumTests { numStandardProperty   = 100
                                          , numNoLockedFunds      = 100
                                          , numNoLockedFundsLight = 100
-                                         , numCrashTolerance     = 100
-                                         , numWhiteList          = 100
+                                         , numDoubleSatisfaction = 100
                                          , numDLTests            = 100
                                          }
 
@@ -215,7 +213,10 @@ addOnTestEvents opts prop
     addCallback ch r = r { callbacks = cb : callbacks r }
       where cb = PostTest NotCounterexample $ \ _st res -> writeChan ch $ QuickCheckTestEvent (ok res)
 
-runStandardProperty :: forall m. RunModel m E.EmulatorM => CertificationOptions -> (Options m) -> CertMonad QC.Result
+runStandardProperty :: forall m. RunModel m E.EmulatorM
+                    => CertificationOptions
+                    -> (Options m)
+                    -> CertMonad QC.Result
 runStandardProperty opts copts = liftIORep $ quickCheckWithCoverageAndResult
                                    (mkQCArgs opts)
                                    copts
@@ -224,7 +225,10 @@ runStandardProperty opts copts = liftIORep $ quickCheckWithCoverageAndResult
                                                 @m
                                                 copts
 
-checkDS :: forall m. RunModel m E.EmulatorM => CertificationOptions -> (Options m) -> CertMonad QC.Result
+checkDS :: forall m. RunModel m E.EmulatorM
+        => CertificationOptions
+        -> (Options m)
+        -> CertMonad QC.Result
 checkDS opts copts = liftIORep $ quickCheckWithCoverageAndResult
                                    (mkQCArgs opts)
                                    copts
@@ -233,13 +237,20 @@ checkDS opts copts = liftIORep $ quickCheckWithCoverageAndResult
                                                   @m
                                                   copts
 
-checkNoLockedFunds :: forall m. RunModel m E.EmulatorM => CertificationOptions -> (Options m) -> NoLockedFundsProof m -> CertMonad QC.Result
+checkNoLockedFunds :: forall m. RunModel m E.EmulatorM
+                   => CertificationOptions
+                   -> (Options m)
+                   -> NoLockedFundsProof m
+                   -> CertMonad QC.Result
 checkNoLockedFunds opts copts prf = lift $ quickCheckWithResult
                                        (mkQCArgs opts)
                                        $ addOnTestEvents opts $ checkNoLockedFundsProofWithOptions copts prf
 
 
-checkNoLockedFundsLight :: forall m. RunModel m E.EmulatorM => CertificationOptions -> NoLockedFundsProofLight m -> CertMonad QC.Result
+checkNoLockedFundsLight :: forall m. RunModel m E.EmulatorM
+                        => CertificationOptions
+                        -> NoLockedFundsProofLight m
+                        -> CertMonad QC.Result
 checkNoLockedFundsLight opts prf =
   lift $ quickCheckWithResult
           (mkQCArgs opts)
@@ -351,7 +362,7 @@ certifyWithOptions' opts CertOptNumTests{..} Certification{..} copts = runCertMo
                 $ runStandardProperty @m (updateCertificationOptions opts numStandardProperty) copts
   -- Double satisfaction
   dsRes        <- wrapQCTask opts DoubleSatisfactionTask
-                  $ checkDS @m opts copts
+                  $ checkDS @m (updateCertificationOptions opts numDoubleSatisfaction) copts
   -- No locked funds
   noLock       <- traverse (wrapQCTask (updateCertificationOptions opts numNoLockedFunds) NoLockedFundsTask . checkNoLockedFunds (updateCertificationOptions opts numNoLockedFunds) copts)
                            certNoLockedFunds

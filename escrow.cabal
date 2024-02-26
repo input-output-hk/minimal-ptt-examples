@@ -114,6 +114,7 @@ test-suite escrow-test
     cardano-node-emulator    >=1.2.0
     , plutus-ledger          >=1.2.0
     , plutus-script-utils    >=1.2.0
+    , plutus-contract-certification-node
 
   --------------------------
   -- Other IOG dependencies

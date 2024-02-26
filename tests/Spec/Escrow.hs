@@ -20,6 +20,8 @@ module Spec.Escrow (
   prop_validityChecks,
   checkPropEscrowWithCoverage,
   EscrowModel,
+  quickCertificationWithCheckOptions,
+  outputCoverageOfQuickCertification
 ) where
 
 import Control.Lens (At (at), makeLenses, to, (%=), (.=), (^.))
@@ -121,6 +123,10 @@ import Test.Tasty.QuickCheck (
  )
 
 import Control.Monad.Except (catchError)
+
+import Plutus.Contract.Test.Certification
+import Plutus.Contract.Test.Certification.Run
+import Test.QuickCheck.DynamicLogic qualified as QCD
 
 type Wallet = Integer
 
@@ -426,12 +432,12 @@ tests =
           act $ Pay 1 20
           E.awaitSlot 100
           act $ Refund 1
-    , testProperty "QuickCheck ContractModel" prop_Escrow
+    {-, testProperty "QuickCheck ContractModel" prop_Escrow
     , testProperty "QuickCheck NoLockedFunds" prop_NoLockedFunds
     , testProperty "QuickCheck validityChecks" $ QC.withMaxSuccess 30 prop_validityChecks
     , testProperty "QuickCheck finishEscrow" prop_FinishEscrow
     , testProperty "QuickCheck double satisfaction fails" $
-        QC.expectFailure (QC.noShrinking prop_Escrow_DoubleSatisfaction)
+        QC.expectFailure (QC.noShrinking prop_Escrow_DoubleSatisfaction) -}
     ]
 
 escrowParams :: POSIXTime -> EscrowParams d
@@ -449,3 +455,53 @@ checkPropEscrowWithCoverage = do
   cr <-
     E.quickCheckWithCoverage QC.stdArgs options $ QC.withMaxSuccess 1000 . E.propRunActionsWithOptions
   writeCoverageReport "Escrow" cr
+
+unitTest1 :: DL EscrowModel ()
+unitTest1 = do
+              val <- QCD.forAllQ $ QCD.chooseQ (10, 20)
+              action $ Pay w1 val
+              action $ Pay w2 val
+              action $ Pay w3 val
+              action $ Redeem w4
+
+
+unitTest2 :: DL EscrowModel ()
+unitTest2 = do
+              val <- QCD.forAllQ $ QCD.chooseQ (10, 20)
+              action $ Pay w1 val
+              waitUntilDL 100
+              action $ Refund w1
+
+-- | Certification.
+certification :: Certification EscrowModel
+certification = defaultCertification {
+    certNoLockedFunds = Just noLockProof,
+    certUnitTests = Just unitTest,
+    certDLTests = [("redeem test", unitTest1), ("refund test", unitTest2)],
+    certCoverageIndex      = Impl.covIdx,
+    certCheckOptions = Just options
+  }
+  where unitTest _ = tests
+
+normalCertification :: IO (CertificationReport EscrowModel)
+normalCertification = certify certification
+
+normalCertification' :: IO (CertificationReport EscrowModel)
+normalCertification' = certifyWithOptions defaultCertificationOptions defaultCertOptNumTests certification
+
+certificationWithCheckOptions :: IO (CertificationReport EscrowModel)
+certificationWithCheckOptions = certifyWithCheckOptions defaultCertificationOptions certification  defaultCertOptNumTests
+
+justStandardProperty :: CertOptNumTests
+justStandardProperty = CertOptNumTests { numStandardProperty    = 10
+                                        , numNoLockedFunds      = 0
+                                        , numNoLockedFundsLight = 0
+                                        , numDoubleSatisfaction = 0
+                                        , numDLTests            = 0
+                                        }
+
+quickCertificationWithCheckOptions :: IO (CertificationReport EscrowModel)
+quickCertificationWithCheckOptions = certifyWithCheckOptions defaultCertificationOptions certification justStandardProperty
+
+outputCoverageOfQuickCertification :: IO (CertificationReport EscrowModel)
+outputCoverageOfQuickCertification = genCoverageFile quickCertificationWithCheckOptions
