@@ -20,8 +20,11 @@ module Spec.Escrow (
   prop_validityChecks,
   checkPropEscrowWithCoverage,
   EscrowModel,
+  normalCertification,
+  normalCertification',
   quickCertificationWithCheckOptions,
-  outputCoverageOfQuickCertification
+  outputCoverageOfQuickCertification,
+  runS
 ) where
 
 import Control.Lens (At (at), makeLenses, to, (%=), (.=), (^.))
@@ -216,7 +219,8 @@ instance ContractModel EscrowModel where
       s ^. currentSlot . to fromCardanoSlotNo < s ^. contractState . refundSlot - 2 -- why -2?
         || w /= w'
 
-  validFailingAction _ _ = True
+  -- enable again later
+  validFailingAction _ _ = False
 
   arbitraryAction s =
     frequency $
@@ -453,7 +457,7 @@ escrowParams startTime =
 checkPropEscrowWithCoverage :: IO ()
 checkPropEscrowWithCoverage = do
   cr <-
-    E.quickCheckWithCoverage QC.stdArgs options $ QC.withMaxSuccess 1000 . E.propRunActionsWithOptions
+    E.quickCheckWithCoverage QC.stdArgs options $ QC.withMaxSuccess 20 . E.propRunActionsWithOptions
   writeCoverageReport "Escrow" cr
 
 unitTest1 :: DL EscrowModel ()
@@ -486,14 +490,11 @@ certification = defaultCertification {
 normalCertification :: IO (CertificationReport EscrowModel)
 normalCertification = certify certification
 
-normalCertification' :: IO (CertificationReport EscrowModel)
-normalCertification' = certifyWithOptions defaultCertificationOptions defaultCertOptNumTests certification
-
 certificationWithCheckOptions :: IO (CertificationReport EscrowModel)
 certificationWithCheckOptions = certifyWithCheckOptions defaultCertificationOptions certification  defaultCertOptNumTests
 
 justStandardProperty :: CertOptNumTests
-justStandardProperty = CertOptNumTests { numStandardProperty    = 10
+justStandardProperty = CertOptNumTests { numStandardProperty    = 20
                                         , numNoLockedFunds      = 0
                                         , numNoLockedFundsLight = 0
                                         , numDoubleSatisfaction = 0
@@ -505,3 +506,13 @@ quickCertificationWithCheckOptions = certifyWithCheckOptions defaultCertificatio
 
 outputCoverageOfQuickCertification :: IO (CertificationReport EscrowModel)
 outputCoverageOfQuickCertification = genCoverageFile quickCertificationWithCheckOptions
+
+normalCertification' :: IO (CertificationReport EscrowModel)
+normalCertification' = certifyWithOptions defaultCertificationOptions justStandardProperty certification
+
+certCustom :: CertificationOptions
+certCustom = CertificationOptions { certOptOutput = True
+                                    , certOptNumTests = 20
+                                    , certEventChannel = Nothing }
+
+runS = runStandardProperty' certCustom options

@@ -1,5 +1,4 @@
 packages: .
-          plutus-contract-certification
 --          certification
 
 -- Custom repository for cardano haskell packages
@@ -68,3 +67,9 @@ source-repository-package
     subdir:
       quickcheck-contractmodel
       quickcheck-threatmodel
+
+source-repository-package
+    type: git
+    location: https://github.com/Ali-Hill/plutus-contract-certification-node
+    tag: 945acad6ac294cb801d901fb4df851d9f2ca3106
+    --sha256: sha256-keiXJeCCAPmVNlBlrg9uDUEjuEFCPAsZ2kHVdycrIPU=
