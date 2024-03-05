@@ -235,7 +235,7 @@ toValidityRange slotConfig =
 
 mkVestTx
   :: VestingParams
-  -- ^ The escrow contract
+  -- ^ The vesting contract
   -> Ledger.CardanoAddress
   -- ^ Wallet address
   -> Value
@@ -244,7 +244,6 @@ mkVestTx
 mkVestTx vesting wallet vl =
   let vestingAddr = contractAddress vesting
       txOut = C.TxOut vestingAddr (toTxOutValue vl) (toTxOutInlineDatum ()) C.ReferenceScriptNone
-      -- validityRange = toValidityRange slotConfig $ Interval.to $ escrowDeadline escrow PlutusTx.- 1000
       utx =
         E.emptyTxBodyContent
           { C.txOuts = [txOut] }
@@ -253,7 +252,7 @@ mkVestTx vesting wallet vl =
 
 mkBadVestTx
   :: VestingParams
-  -- ^ The escrow contract
+  -- ^ The vesting contract
   -> Ledger.CardanoAddress
   -- ^ Wallet address
   -> Value

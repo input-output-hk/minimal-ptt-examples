@@ -1,5 +1,5 @@
 cabal-version:   3.0
-name:            escrow
+name:            vesting
 version:         1.2.0.0
 maintainer:      alasdair.hill@iohk.io
 author:          Alasdair Hill
@@ -34,8 +34,6 @@ common lang
 library
   import:             lang
   exposed-modules:
-    Contract.Escrow
-    Spec.Escrow
     Contract.Vesting
     Spec.Vesting
 
@@ -98,7 +96,7 @@ library
     , time
 
 
-test-suite escrow-test
+test-suite vesting-test
   import:             lang
   type:               exitcode-stdio-1.0
   main-is:            Spec.hs
@@ -107,7 +105,6 @@ test-suite escrow-test
   default-language: Haskell2010
   ghc-options:      -Wno-unused-packages
   other-modules:
-    Spec.Escrow
     Contract.Vesting
     Spec.Vesting
 

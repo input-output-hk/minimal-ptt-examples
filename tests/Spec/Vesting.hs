@@ -22,33 +22,6 @@ module Spec.Vesting (VestingModel
                     , certification
                     , check_propVestingWithCoverage) where -}
 
-{-
-import Control.Lens hiding (elements)
-import Control.Monad (void, when)
-import Data.Default (Default (def))
-import Test.Tasty
-import Test.Tasty.HUnit qualified as HUnit
-import Test.Tasty.QuickCheck (testProperty)
-
-import Cardano.Node.Emulator.TimeSlot qualified as TimeSlot
-import Ledger qualified
-import Ledger.Slot
-import Ledger.Time (POSIXTime)
-import Plutus.Contract.Test hiding (not)
-import Plutus.Contract.Test.ContractModel
-import Contract.Vesting
-import Plutus.Script.Utils.Ada qualified as Ada
-import Plutus.Script.Utils.Value
-import Plutus.Trace.Emulator (EmulatorTrace, callEndpoint)
-import Plutus.Trace.Emulator qualified as Trace
-import PlutusTx qualified
-import PlutusTx.Numeric qualified as Numeric
-import Prelude
-import Test.QuickCheck hiding ((.&&.))
-import Plutus.Contract.Test.Certification
-import Plutus.Contract.Test.ContractModel.CrashTolerance
--}
-
 ----Additional
 
 import PlutusTx.Numeric qualified as Numeric
@@ -98,7 +71,6 @@ import Contract.Vesting (
   typedValidator,
   VestingTranche(..),
  )
-import Contract.Escrow qualified as Impl
 import PlutusTx (fromData)
 import PlutusTx.Monoid (inv)
 

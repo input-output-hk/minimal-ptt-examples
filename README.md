@@ -1,14 +1,14 @@
-# Experimental minimal escrow contract repository
+# Experimental minimal vesting contract repository using the cardano-node-emulator
 
 ## Current Build Instructions
 
 1. run `nix develop`
-2. `cabal build escrow`
+2. `cabal build vesting`
 
 To enter testing repl after step 2 run in the root directory:
 
- - `cabal repl escrow-test`
+ - `cabal repl vesting-test`
 
 To run tests after step 2 run in the root directory:
 
- - `cabal run escrow-test`
+ - `cabal run vesting-test`
