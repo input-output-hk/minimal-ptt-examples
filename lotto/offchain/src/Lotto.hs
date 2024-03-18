@@ -14,10 +14,12 @@ module Lotto
     resolve,
     sresolve,
     spost,
-    resolve'
+    resolve',
+    badResolve
   )
 where
 
+import qualified Cardano.Node.Emulator as Emulator -- needed for example
 import qualified Cardano.Node.Emulator.TimeSlot as TimeSlot
 import qualified Cooked
 import qualified Data
@@ -290,7 +292,8 @@ sresolve' secret (lottoRef, lotto) sealName = do
           (Map.toList $ view Data.players datum)
   return $
     Cooked.txSkelTemplate
-      { Cooked.txSkelIns = HMap.singleton lottoRef $ Data.resolve secret,
+      { Cooked.txSkelOpts = def {Cooked.txOptEmulatorParamsModification = Just $ Cooked.EmulatorParamsModification Emulator.increaseTransactionLimits},
+        Cooked.txSkelIns = HMap.singleton lottoRef $ Data.resolve secret,
         Cooked.txSkelOuts = [Cooked.paysPK pk (Ada.lovelaceValueOf v) | (pk, v) <- payments],
         Cooked.txSkelMints = Cooked.txSkelMintsFromList [Lib.burnSeal script sealName],
         Cooked.txSkelSigners = [organiser]
@@ -307,6 +310,40 @@ resolve' ::
   m [(LedgerV2.TxOutRef, LedgerV2.TxOut)]
 resolve' secret (lottoRef, lotto) sealName =
   sresolve' secret (lottoRef, lotto) sealName >>= Lib.validateAndGetOuts
+
+sbadResolve ::
+  Cooked.MonadBlockChainWithoutValidation m =>
+  BuiltinByteString ->
+  (LedgerV2.TxOutRef, LedgerV2.Value) ->
+  LedgerV2.TokenName ->
+  m Cooked.TxSkel
+sbadResolve secret (lottoRef, lotto) sealName = do
+  Just datum <- Data.datumOfTxOut lottoRef
+  let potAda =
+        Map.lookup
+          LedgerV2.adaSymbol
+          (LedgerV2.getValue lotto)
+          >>= Map.lookup LedgerV2.adaToken & fromMaybe 0
+  return $
+    Cooked.txSkelTemplate
+      { Cooked.txSkelOpts = def {Cooked.txOptEmulatorParamsModification = Just $ Cooked.EmulatorParamsModification Emulator.increaseTransactionLimits},
+        Cooked.txSkelIns = HMap.singleton lottoRef $ Data.resolve secret,
+        Cooked.txSkelOuts = [Cooked.paysPK (Cooked.walletPKHash organiser) (Ada.lovelaceValueOf potAda)],
+        Cooked.txSkelMints = Cooked.txSkelMintsFromList [Lib.burnSeal script sealName],
+        Cooked.txSkelSigners = [organiser]
+      }
+
+badResolve ::
+  Cooked.MonadBlockChain m =>
+  -- | The secret, in clear.
+  BuiltinByteString ->
+  -- | The lotto to resolve
+  (LedgerV2.TxOutRef, LedgerV2.Value) ->
+  -- | The name of the seal
+  LedgerV2.TokenName ->
+  m [(LedgerV2.TxOutRef, LedgerV2.TxOut)]
+badResolve secret (lottoRef, lotto) sealName =
+  sbadResolve secret (lottoRef, lotto) sealName >>= Lib.validateAndGetOuts
 
 -- | Generate a skeleton that posts the lotto as a reference script on an
 -- output locked by the organiser.

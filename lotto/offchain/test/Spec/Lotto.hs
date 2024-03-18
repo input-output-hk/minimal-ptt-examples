@@ -83,7 +83,7 @@ import Debug.Trace
 
 lottoSetup :: Setup
 lottoSetup = Setup
-             { duration = Time.secondsToNominalDiffTime 8, -- If this is too big then the datum can grow too large
+             { duration = Time.secondsToNominalDiffTime 20, -- 8, -- If this is too big then the datum can grow too large
                bidAmount = Lib.ada 10,
                margin = Tx.unsafeRatio 3 100
              }
@@ -135,6 +135,7 @@ instance ContractModel LottoModel where
                           | MintSeal Int
                           | Play String Integer Int
                           | Resolve Int
+                          | BadResolve Int
                           deriving (Eq, Show, Generic)
 
   initialState = LottoModel { _guesses = []
@@ -203,6 +204,15 @@ instance ContractModel LottoModel where
       token .= Nothing
       phase .= Initial
       wait 1
+    BadResolve _ -> do
+      vl <- viewContractState value
+
+      deposit (walletAddr Lotto.organiser) (Ada.adaValueOf $ fromInteger vl)
+
+      txIn  .= Nothing -- Needed to block negative testing to block fromJust error
+      token .= Nothing
+      phase .= Initial
+      wait 1
 
 {-
   precondition s a = case a of
@@ -250,6 +260,7 @@ instance ContractModel LottoModel where
     Play g v w -> w /= 4
                   && currentPhase == Playing
     Resolve _ -> currentPhase == Resolving
+    BadResolve _ -> currentPhase == Resolving
     where currentPhase = s ^. contractState . phase
 
 
@@ -271,7 +282,7 @@ voidCatch m = catchError (void m) (\ _ -> pure ())
 -- | Tell us how to run an `AuctionModel` in the `SuperMockChain` - an
 -- extension of the Cooked Validator `MockChain` monad adapted to
 -- work with `QuickCheck.ContractModel`.
-instance RunModel LottoModel (SuperMockChain ()) where
+instance RunModel LottoModel (SuperMockChain Params.Params) where
   -- `perform` runs API actions by calling the off-chain code of
   -- the contract in the `SuperMockChain` monad.
 
@@ -320,6 +331,19 @@ instance RunModel LottoModel (SuperMockChain ()) where
                    ((Plutus.fromCardanoTxIn $ fromJust mref) ,
                     (mintVal <> (Ada.adaValueOf $ fromInteger lotto)))
                    sealName
+  perform s (BadResolve _) translate = void $ do
+    let mref  = translate <$> s ^. contractState . txIn
+        lotto = s ^. contractState . value
+        scrt  = s ^. contractState . secret
+        seal  = translate <$> s ^. contractState . token
+        sealPolicy = TScripts.Versioned (Lib.mkMintingPolicy Lotto.script) TScripts.PlutusV2
+        currency = L.scriptCurrencySymbol sealPolicy
+        sealName = (getTokenName $ fromJust seal)
+        mintVal = LedgerV2.Value $ AssocMap.singleton currency $ AssocMap.singleton sealName 1
+    Lotto.badResolve (toBuiltinByteString scrt)
+                     ((Plutus.fromCardanoTxIn $ fromJust mref) ,
+                     (mintVal <> (Ada.adaValueOf $ fromInteger lotto)))
+                     sealName
 
   -- we shall not do monitoring yet
   -- monitoring
@@ -329,13 +353,13 @@ instance RunModel LottoModel (SuperMockChain ()) where
 -- by the `RunModel` instance - up to minimum ada requirements on UTxOs.
 prop_Lotto :: Property
 prop_Lotto = -- noShrinking $
-             QC.withMaxSuccess 100 $ (propRunActions @LottoModel testInit () balanceChangePredicate)
+             QC.withMaxSuccess 100 $ (propRunActions @LottoModel testInit (idParams def) balanceChangePredicate)
 
 -- | A standard property that runs the `doubleSatisfaction` threat
 -- model against the auction contract to check for double satisfaction
 -- vulnerabilities.
 prop_doubleSatisfaction :: Actions LottoModel -> Property
-prop_doubleSatisfaction = propRunActions testInit () (assertThreatModel doubleSatisfaction)
+prop_doubleSatisfaction = propRunActions testInit (idParams def) (assertThreatModel doubleSatisfaction)
 
 getTokenName :: AssetId -> TokenName
 getTokenName (AssetId sym (AssetName tok)) = TokenName (Builtins.toBuiltin tok)
@@ -366,7 +390,7 @@ unitTest1 = do
              action $ Play "bob" 20 3
              action $ Play "john" 20 2
              action $ Play "smith" 20 2
-             waitUntilDL 20
+             waitUntilDL 22
              action $ Resolve 4
 
 unitTest2 :: DL LottoModel ()
@@ -434,11 +458,37 @@ unitTest9 = do
              waitUntilDL 20
              action $ Resolve 4
 
+unitTest10 :: DL LottoModel ()
+unitTest10 = do
+             action $ Open "jane" "asldkjk"
+             action $ MintSeal 4
+             action $ Play "bob" 20 8
+             action $ Play "alice" 20 7
+             action $ Play "jane" 20 6
+             action $ Play "steven" 20 5
+             action $ Play "bob" 20 3
+             action $ Play "john" 20 2
+             action $ Play "smith" 20 2
+             waitUntilDL 22
+             action $ BadResolve 4
+
 prop_Lotto' :: Actions LottoModel -> Property
-prop_Lotto' = propRunActions testInit () balanceChangePredicate
+prop_Lotto' = propRunActions testInit (idParams def) balanceChangePredicate
 
 propTest :: Property
-propTest = noShrinking $ withMaxSuccess 1 $ forAllDL unitTest9 prop_Lotto'
+propTest = noShrinking $ withMaxSuccess 1 $ forAllDL unitTest10 prop_Lotto'
 
 fixGuesses :: [(Int, String)] -> [(Wallet, BuiltinByteString)]
 fixGuesses xs = map (\ (w , s) -> ((wallet w) , toBuiltinByteString s)) xs
+
+idParams :: Params.Params -> Params.Params
+idParams = id
+
+prop_LottoIncrease :: Actions LottoModel -> Property
+prop_LottoIncrease = propRunActions testInit (Params.increaseTransactionLimits $ Params.increaseTransactionLimits $ Params.increaseTransactionLimits $ Params.increaseTransactionLimits def) balanceChangePredicate
+
+propTestBig :: Property
+propTestBig = noShrinking $ withMaxSuccess 1 $ forAllDL unitTest1 prop_Lotto'
+
+propTestBig' :: Property
+propTestBig' = noShrinking $ withMaxSuccess 1 $ forAllDL unitTest1 prop_LottoIncrease
