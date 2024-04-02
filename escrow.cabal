@@ -49,6 +49,7 @@ library
     , freer-extras         >=1.2.0
     , plutus-ledger        >=1.2.0
     , plutus-script-utils  >=1.2.0
+    , plutus-contract-certification-node
 
   --------------------------
   -- Other IOG dependencies
@@ -66,6 +67,7 @@ library
     , plutus-core                               >=1.0.0
     , plutus-ledger-api                         >=1.0.0
     , plutus-tx                                 >=1.0.0
+    , plutus-tx-plugin   >=1.0.0
     , sop-extras
     , strict-sop-core
 
@@ -91,9 +93,11 @@ library
     , quickcheck-threatmodel    >=0.1.5.0
     , sop-core
     , tasty
+    , tasty-quickcheck
     , tasty-hunit
     , text
     , time
+
 
 test-suite escrow-test
   import:             lang
