@@ -12,3 +12,9 @@ To enter testing repl after step 2 run in the root directory:
 To run tests after step 2 run in the root directory:
 
  - `cabal run escrow-test`
+
+If you want to run a specific test such as Double Satisfaction in the repl do:
+
+- `import Test.QuickCheck`
+- `import Spec.Escrow`
+- `quickCheck prop_Escrow_DoubleSatisfaction`
