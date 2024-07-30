@@ -76,7 +76,7 @@ import PlutusTx.Monoid (inv)
 
 import Cardano.Api (
   AddressInEra (AddressInEra),
-  AllegraEraOnwards (AllegraEraOnwardsBabbage),
+  AllegraEraOnwards (AllegraEraOnwardsConway),
   IsShelleyBasedEra (shelleyBasedEra),
   TxOut (TxOut),
   TxValidityLowerBound (TxValidityLowerBound, TxValidityNoLowerBound),
@@ -130,6 +130,7 @@ import Control.Monad.Except (catchError)
 import Plutus.Contract.Test.Certification
 import Plutus.Contract.Test.Certification.Run
 import Test.QuickCheck.DynamicLogic qualified as QCD
+import Plutus.Contract.Test.Certification.Run (certifyWithOptions)
 
 type Wallet = Integer
 
@@ -364,7 +365,7 @@ validityChecks = do
     Just Impl.Redeem ->
       shouldNotValidate $
         changeValidityRange
-          ( TxValidityLowerBound AllegraEraOnwardsBabbage deadline
+          ( TxValidityLowerBound AllegraEraOnwardsConway deadline
           , TxValidityUpperBound shelleyBasedEra Nothing
           )
     Just Impl.Refund ->
