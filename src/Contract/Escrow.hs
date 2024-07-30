@@ -258,44 +258,15 @@ validate EscrowParams{escrowDeadline, escrowTargets} contributor action ScriptCo
           "txSignedBy"
           (scriptContextTxInfo `txSignedBy` unPaymentPubKeyHash contributor)
 
-                 --  $$(loadFromFile "Contract.Escrow.uplc91483-0.flat")
-                 -- $$(loadFromFile "Contract.Escrow.uplc91483-1.flat")
-      --  $$(loadFromFile "Contract.Escrow.91483-0.flat")
- -- V2.mkTypedValidatorParam @Escrow
-
-{-
-unappliedOracleValidator ::
-  PlutusTx.CompiledCode (OracleParams -> PV2.UntypedValidator)
-unappliedOracleValidator = $$(PlutusTx.compile [|| \params d r c -> check $ oracleContract params d r c ||])
-
-appliedOracleValidator :: OracleParams -> PlutusTx.CompiledCode PV2.UntypedValidator
-appliedOracleValidator op = unappliedOracleValidator
-                            `PlutusTx.unsafeApplyCode` PlutusTx.liftCode Version.plcVersion100 op
-
-oracleScript :: OracleParams -> PV2.SerialisedScript
-oracleScript = PV2.serialiseCompiledCode . appliedOracleValidator
-
-oracleScriptHash :: OracleParams -> PV2.ScriptHash
-oracleScriptHash = PV2.scriptHash . oracleScript
-
-versionedOracleScript :: OracleParams -> C.PlutusScript C.PlutusScriptV2
-versionedOracleScript = C.PlutusScriptSerialised . SBS.toShort . LB.toStrict . serialise . oracleScript
--}
-
--- unappliedEscrowValidator :: PlutusTx.CompiledCode (EscrowParams Datum -> PlutusScriptV2.UntypedValidator)
--- unappliedEscrowValidator =
-
 typedValidator :: EscrowParams Datum -> V2.TypedValidator Escrow
 typedValidator =
   go
   where
     go =
       V2.mkTypedValidatorParam @Escrow
-        $$(loadFromFile "Contract.Escrow.uplc33030-0.flat")
-        $$(loadFromFile "Contract.Escrow.uplc33030-1.flat")
-        -- $$(PlutusTx.compile [||validate||])
-        -- $$(PlutusTx.compile [||wrap||])
-   --  wrap = Scripts.mkUntypedValidator
+        $$(PlutusTx.compile [||validate||])
+        $$(PlutusTx.compile [||wrap||])
+    wrap = Scripts.mkUntypedValidator
 
 
 mkEscrowAddress :: EscrowParams Datum -> Ledger.CardanoAddress

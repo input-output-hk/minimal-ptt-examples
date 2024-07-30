@@ -37,7 +37,6 @@ library
   exposed-modules:
     Contract.Escrow
     Spec.Escrow
-    Contract.ToUPLC
   hs-source-dirs:     src
                       tests
 
@@ -111,7 +110,6 @@ test-suite escrow-test
   ghc-options:      -Wno-unused-packages
   other-modules:
     Spec.Escrow
-    Contract.Blueprint
 
   --------------------
   -- Local components
