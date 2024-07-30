@@ -5,7 +5,7 @@ let
   cabalProject = pkgs.haskell-nix.cabalProject' {
     name = "escrow";
     src = ../.;
-    compiler-nix-name = lib.mkDefault "ghc928";
+    compiler-nix-name = lib.mkDefault "ghc96";
     shell.withHoogle = false;
     inputMap = {
       "https://input-output-hk.github.io/cardano-haskell-packages" = inputs.iogx.inputs.CHaP;

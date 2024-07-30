@@ -4,7 +4,7 @@ packages: .
 -- Custom repository for cardano haskell packages
 -- See https://github.com/input-output-hk/cardano-haskell-packages on how to use CHaP in a Haskell project.
 repository cardano-haskell-packages
-  url: https://input-output-hk.github.io/cardano-haskell-packages
+  url: https://chap.intersectmbo.org/
   secure: True
   root-keys:
     3e0cce471cf09815f930210f7827266fd09045445d65923e6d0238a6cd15126f
@@ -16,16 +16,14 @@ repository cardano-haskell-packages
 
 -- See CONTRIBUTING.adoc for how to update index-state
 index-state:
-  -- Bump both the following dates if you need newer packages from Hackage
-  , hackage.haskell.org 2024-01-08T22:38:30Z
-  -- Bump this if you need newer packages from CHaP
-  , cardano-haskell-packages 2024-01-16T11:00:00Z
+  , hackage.haskell.org 2024-06-12T10:10:17Z
+  , cardano-haskell-packages 2024-06-12T10:10:17Z
 
 source-repository-package
   type: git
-  location: https://github.com/input-output-hk/cardano-node-emulator.git
-  tag: 1e09173b74064bd5990d2d3e48af6510780ea349
-  --sha256: sha256-Woa4iK4CegMV99EV3YXnmwZ/2Ov6wgtleGzSxNpce5g=
+  location: https://github.com/IntersectMBO/cardano-node-emulator.git
+  tag: 4e448248122cece3238052b3639eb4c0c36b422d
+  --sha256: sha256-sB5pfwHm+r5z8gmePFogNoyFxKPR1TVVb2J8HQ7Eq1I=
   subdir: plutus-ledger
           plutus-script-utils
           cardano-node-emulator
@@ -56,15 +54,13 @@ package cardano-api
 package cardano-crypto-praos
   flags: -external-libsodium-vrf
 
-constraints:
-  cardano-api ^>= 8.36
-
--- TODO: remove once this version is on CHaP
+-- This is quickcheck-contractmodel's HEAD of the Conway branch:
+-- https://github.com/input-output-hk/quickcheck-contractmodel/tree/Conway
 source-repository-package
     type: git
     location: https://github.com/input-output-hk/quickcheck-contractmodel
-    tag: 31a5effac7c9e6c70071910c303517a119ec281d
-    --sha256: sha256-6Fj0YBwNzXJ8V7TWjrMTWKiWq94AvAP9NOhHgDb8t3M=
+    tag: b19a7689a0d40ba3c7f91da87ef5fbcf20f3926c
+    --sha256: sha256-ronNW9uJoleclzLjRJhDWdWd9Dso2XSnUl4m3/2eb2k=
     subdir:
       quickcheck-contractmodel
       quickcheck-threatmodel
