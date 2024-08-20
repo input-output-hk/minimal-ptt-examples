@@ -8,12 +8,12 @@ This repo contains a variety of minimal examples showcasing the testing of DApps
 
 The notable branches are listed below by emulator: 
 
-*plutus-apps emulator*
+The main branch includes the `cardano-node-emulator` version of the escrow contract as it is the most up-to-date example. 
 
-1. Escrow
-2. EscrowNoCoverage
-3. Vesting 
-4. governance
+*cardano-node-emulator*
+
+1. escrow-node-emulator
+2. vesting-node-emulator
 
 *cooked emuator*
 
@@ -21,21 +21,28 @@ The notable branches are listed below by emulator:
 2. minimal-lotto-experimental
 3. auction-cooked
 
-*cardano-node-emulator*
+*plutus-apps emulator*
 
-1. escrow-node-emulator
-2. vesting-node-emulator
+1. Escrow
+2. EscrowNoCoverage
+3. Vesting 
+4. governance
 
 ## Current Build Instructions
 
-1. go to the escrow folder 
-2. run `nix develop`
-3. `cabal build escrow`
+1. run `nix develop`
+2. `cabal build escrow`
 
-To enter testing repl after step 2 run in the escrow directory:
+To enter testing repl after step 2 run in the root directory:
 
  - `cabal repl escrow-test`
 
-To run tests after step 2 run in the escrow directory:
+To run tests after step 2 run in the root directory:
 
  - `cabal run escrow-test`
+
+If you want to run a specific test such as Double Satisfaction in the repl do:
+
+- `import Test.QuickCheck`
+- `import Spec.Escrow`
+- `quickCheck prop_Escrow_DoubleSatisfaction`
