@@ -1,30 +1,42 @@
-{ repoRoot, inputs, pkgs, lib, system }:
+{ repoRoot, inputs, pkgs, system, lib }:
 
 let
 
-  cabalProject = pkgs.haskell-nix.cabalProject' {
-    name = "escrow";
-    src = ../.;
-    compiler-nix-name = lib.mkDefault "ghc96";
-    shell.withHoogle = false;
-    inputMap = {
-      "https://input-output-hk.github.io/cardano-haskell-packages" = inputs.iogx.inputs.CHaP;
-    };
-    modules = [{
-      packages = {
-        # Werror everything. This is a pain, see https://github.com/input-output-hk/haskell.nix/issues/519
-        escrow.ghcOptions = [ "-Werror" ];
-      };
-    }];
-  };
+  cabalProject' = pkgs.haskell-nix.cabalProject' ({ pkgs, config, ... }:
+    let
+      # When `isCross` is `true`, it means that we are cross-compiling the project.
+      # WARNING You must use the `pkgs` coming from cabalProject' for `isCross` to work.
+      isCross = pkgs.stdenv.hostPlatform != pkgs.stdenv.buildPlatform;
+    in
+    {
+      name = "esrow";
 
+      src = ../.;
+
+      shell.withHoogle = false;
+
+      inputMap = {
+        "https://chap.intersectmbo.org/" = inputs.CHaP;
+      };
+
+      compiler-nix-name = lib.mkDefault "ghc96";
+
+      modules =
+        [
+          {
+            packages = { };
+          }
+        ];
+    });
+
+
+  cabalProject = cabalProject'.appendOverlays [ ];
+
+
+  # Docs for mkHaskellProject: https://github.com/input-output-hk/iogx/blob/main/doc/api.md#mkhaskellproject
   project = lib.iogx.mkHaskellProject {
     inherit cabalProject;
     shellArgs = repoRoot.nix.shell;
-    readTheDocs = {
-      enable = true;
-      siteFolder = "doc/read-the-docs-site";
-    };
   };
 
 in
