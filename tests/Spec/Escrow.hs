@@ -195,7 +195,7 @@ instance ContractModel EscrowModel where
       wait 1
     Refund w -> do
       v <- viewContractState $ contributions . at w . to Data.Foldable.fold
-      contributions %= Map.delete w
+      -- contributions %= Map.delete w
       deposit (walletAddress w) v
       wait 1
     BadRefund _ _ -> do
@@ -242,7 +242,7 @@ instance ContractModel EscrowModel where
       prefer b = if b then 10 else 1
 
 instance RunModel EscrowModel E.EmulatorM where
-  perform _ cmd _ = lift $ voidCatch $ act cmd
+  perform _ cmd _ = lift $ void $ act cmd
 
 voidCatch m = catchError (void m) (\ _ -> pure ())
 
@@ -437,8 +437,8 @@ tests =
           act $ Pay 1 20
           E.awaitSlot 100
           act $ Refund 1
-    {-, testProperty "QuickCheck ContractModel" prop_Escrow
-    , testProperty "QuickCheck NoLockedFunds" prop_NoLockedFunds
+    , testProperty "QuickCheck ContractModel" prop_Escrow
+    {-, testProperty "QuickCheck NoLockedFunds" prop_NoLockedFunds
     , testProperty "QuickCheck validityChecks" $ QC.withMaxSuccess 30 prop_validityChecks
     , testProperty "QuickCheck finishEscrow" prop_FinishEscrow
     , testProperty "QuickCheck double satisfaction fails" $
